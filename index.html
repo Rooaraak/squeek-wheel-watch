@@ -51,6 +51,7 @@
   }
 
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
   body {
     margin: 0; background: var(--page); color: var(--ink);
@@ -160,6 +161,17 @@
   .tooltip .tl { color: var(--ink-3); }
   .data-table-wrap { overflow-x: auto; margin-top: 10px; }
 
+  /* live run */
+  .run-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 8px 0 14px; }
+  .run-stats .label { color: var(--ink-2); font-size: 13px; font-weight: 500; }
+  .run-stats .v { margin-top: 2px; font-size: 24px; font-weight: 600; letter-spacing: -.02em; white-space: nowrap; }
+  .run-stats .v small { font-size: 13px; color: var(--ink-2); font-weight: 500; margin-left: 3px; }
+  .chart .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .chart .area { fill: var(--accent); opacity: .1; }
+  .chart .enddot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+  .chart .cross { stroke: var(--ink-3); stroke-width: 1; }
+  .chart .hover-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+
   /* panels */
   .grid-2 { display: grid; grid-template-columns: .9fr 1.1fr; gap: 16px; }
   .grid-even { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -266,7 +278,7 @@
   }
   @media (max-width: 520px) {
     .tiles, .steps { grid-template-columns: 1fr; }
-    .records, .wallet-tiles { grid-template-columns: repeat(2, 1fr); }
+    .records, .wallet-tiles, .run-stats { grid-template-columns: repeat(2, 1fr); }
     .nav-links .hide-sm, .col-round { display: none; }
     .chart { height: 240px; }
   }
@@ -315,6 +327,10 @@
             <span id="notifyText">Notify me when it runs</span>
           </button>
           <button class="btn" type="button" id="soundBtn" aria-pressed="false" hidden>Squeak sound: off</button>
+          <button class="btn" type="button" id="shareBtn">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.8 3h3.1l-6.8 7.8 8 10.2h-6.3l-4.9-6.4L5.3 21H2.2l7.3-8.3L1.8 3h6.4l4.4 5.9zm-1.1 16.2h1.7L7.4 4.7H5.6z"/></svg>
+            Share on X
+          </button>
           <span class="hint" id="notifyHint"></span>
         </div>
       </div>
@@ -361,6 +377,21 @@
       </div>
     </section>
 
+    <section class="card chart-card" id="run" style="margin-top:16px" aria-labelledby="runTitle">
+      <div class="chart-top">
+        <div><span class="chart-title" id="runTitle">Live run</span></div>
+        <div class="chart-total" id="runSince"></div>
+      </div>
+      <div class="run-stats">
+        <div><div class="label" id="runL1">Time running</div><div class="v" id="runV1">–</div></div>
+        <div><div class="label" id="runL2">Distance</div><div class="v" id="runV2">–</div></div>
+        <div><div class="label" id="runL3">Top speed</div><div class="v" id="runV3">–</div></div>
+        <div><div class="label" id="runL4">Average speed</div><div class="v" id="runV4">–</div></div>
+      </div>
+      <div class="chart short" id="runChart"></div>
+      <div class="hint" id="runNote"></div>
+    </section>
+
     <div class="section-head">
       <div>
         <h2>Mining activity</h2>
@@ -395,7 +426,7 @@
     <div class="section-head" id="records">
       <div>
         <h2>Hamster records</h2>
-        <p>Personal bests measured by the wheel sensor and published by Squeekchain.</p>
+        <p>Personal bests measured by the wheel sensor and published by Squeekchain. Squeekchain counts each day from 12:00 to 12:00 UTC, so a night's run stays in one day.</p>
       </div>
     </div>
     <section class="records" id="recordTiles" aria-label="Records"></section>
@@ -480,7 +511,7 @@
 
     <div class="section-head"><div><h2>How the wheel mines</h2></div></div>
     <section class="steps">
-      <div class="card step"><div class="n">01</div><h4>The hamster runs</h4><p>A Hall-effect sensor on an RP2040 board counts every turn of the wheel and reports speed, rpm and distance.</p></div>
+      <div class="card step"><div class="n">01</div><h4>The hamster runs</h4><p>A Hall-effect sensor on an RP2040 board counts every turn of the wheel (about 88 cm of running each) and reports speed, rpm and distance.</p></div>
       <div class="card step"><div class="n">02</div><h4>Signed at the source</h4><p>Each reading is signed on the device by a secure chip (Trust M, ECDSA P-256) before the oracle accepts it.</p></div>
       <div class="card step"><div class="n">03</div><h4>Runs become blocks</h4><p>Every 10 minutes the oracle closes a round of the wheel's work and settles it on Sepolia as completed blocks.</p></div>
       <div class="card step"><div class="n">04</div><h4>Blocks mint SQK</h4><p>Each block issues SQK on a halving schedule, plus a launch bonus for the first 97,020 blocks, toward a 2.1 billion cap.</p></div>
@@ -553,6 +584,18 @@ const fmtUtcDay = (ymd) => new Date(`${ymd}T12:00:00Z`).toLocaleDateString([], {
 const clockOfUtcMinute = (min) => {
   const d = new Date(); d.setUTCHours(0, min, 0, 0);
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+// Stats "days" run from 12:00 to 12:00 UTC (a night stays in one day), labelled by the date they start on.
+const dayStart = (ymd) => Date.parse(`${ymd}T12:00:00Z`);
+const slotTime = (ymd, minuteUtc) => dayStart(ymd) + (((minuteUtc - 720) % 1440 + 1440) % 1440) * 60000;
+const nightOf = (ymd) => {
+  const a = new Date(dayStart(ymd)), b = new Date(dayStart(ymd) + 86400000);
+  const m = (d) => d.toLocaleDateString([], { month: 'short', timeZone: 'UTC' }), dd = (d) => d.toLocaleDateString([], { day: 'numeric', timeZone: 'UTC' });
+  return m(a) === m(b) ? `${m(a)} ${dd(a)}–${dd(b)}` : `${m(a)} ${dd(a)} – ${m(b)} ${dd(b)}`;
+};
+const sinceLabel = (ymd) => {
+  const t = new Date(dayStart(ymd)), today = new Date().toDateString() === t.toDateString();
+  return `since ${today ? '' : 'yesterday '}${t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 };
 const node = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
 const ICONS = {
@@ -675,7 +718,168 @@ function drawBars(box, items, { unit, xLabel, every, peakLabel = true, emptyText
   box.prepend(svg);
 }
 
-// ---------- live status (every 15 s): hero, overlay, notifications
+// ---------- live run tracker: samples the sensor while the wheel turns (it publishes a reading every 10 s)
+const run = { active: false, startAt: null, trackFrom: null, startDistance: 0, samples: [], lastObservedAt: null, finished: null };
+
+function runSummary() {
+  const s = run.samples;
+  if (!s.length) return null;
+  const first = Date.parse(run.trackFrom), last = s.at(-1).t, seconds = Math.max(0, (last - first) / 1000);
+  let distance = s.at(-1).d - run.startDistance;
+  if (!(distance >= 0)) { // counter reset mid-run: integrate speed over time instead
+    distance = 0;
+    for (let i = 1; i < s.length; i++) distance += s[i].v * ((s[i].t - s[i - 1].t) / 1000);
+  }
+  return { seconds, distance, top: Math.max(...s.map((x) => x.v)), avg: seconds > 0 ? distance / seconds : s.at(-1).v,
+    endedAt: new Date(last).toISOString(), fullRun: !!run.startAt };
+}
+
+function trackRun(m, running) {
+  if (running) {
+    if (!run.active) {
+      Object.assign(run, { active: true, finished: null, samples: [], lastObservedAt: null, startDistance: m.distanceMm,
+        startAt: wasRunning === false ? m.observedAt : null, trackFrom: m.observedAt }); // opened mid-run: the real start is unknown
+    }
+    if (m.observedAt !== run.lastObservedAt) {
+      run.samples.push({ t: Date.parse(m.observedAt), v: m.speedMmPerSecond, d: m.distanceMm });
+      run.lastObservedAt = m.observedAt;
+    }
+  } else if (run.active) {
+    run.active = false;
+    run.finished = runSummary();
+    if (run.finished) store.set('sww-lastrun', JSON.stringify(run.finished));
+  }
+}
+
+const dur = (sec) => {
+  const m = Math.round(sec / 60);
+  return m < 60 ? [String(m), 'min'] : [`${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`, 'h'];
+};
+const setV = (id, value, unit) => $(id).replaceChildren(value, ...(unit ? [node('small', { textContent: unit })] : []));
+
+function drawLine(box, pts) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, text) => {
+    const e = document.createElementNS(ns, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+  const W = box.clientWidth, H = box.clientHeight;
+  if (!W || !H || !pts.length) return;
+  const pad = { l: 46, r: 12, t: 16, b: 30 }, pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  const t0 = pts[0].t, t1 = Math.max(pts.at(-1).t, t0 + 60000);
+  const { top: max, step } = niceScale(Math.max(...pts.map((p) => p.y))), ticks = Math.round(max / step);
+  const X = (t) => pad.l + ((t - t0) / (t1 - t0)) * pw, Y = (v) => pad.t + ph - (v / max) * ph;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': box.dataset.label || 'Line chart' });
+  for (let i = 0; i <= ticks; i++) {
+    const y = pad.t + ph - (ph * i) / ticks;
+    svg.append(el('line', { class: i ? 'gridline' : 'baseline', x1: pad.l, x2: W - pad.r, y1: y, y2: y }));
+    svg.append(el('text', { class: 'tick', x: pad.l - 10, y: y + 4, 'text-anchor': 'end' }, compact.format(step * i)));
+  }
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.t).toFixed(1)},${Y(p.y).toFixed(1)}`).join('');
+  svg.append(el('path', { class: 'area', d: `${d}L${X(pts.at(-1).t).toFixed(1)},${pad.t + ph}L${X(t0).toFixed(1)},${pad.t + ph}Z` }));
+  svg.append(el('path', { class: 'line', d }));
+  svg.append(el('circle', { class: 'enddot', cx: X(pts.at(-1).t), cy: Y(pts.at(-1).y), r: 4 }));
+  const withSeconds = t1 - t0 < 300000;
+  for (const f of [0, 0.5, 1]) {
+    const t = t0 + f * (t1 - t0);
+    svg.append(el('text', { class: 'tick', x: X(t), y: H - 8, 'text-anchor': f === 0 ? 'start' : f === 1 ? 'end' : 'middle' },
+      new Date(t).toLocaleTimeString([], withSeconds ? { hour: '2-digit', minute: '2-digit', second: '2-digit' } : { hour: '2-digit', minute: '2-digit' })));
+  }
+  // crosshair: snaps to the nearest reading
+  let tip = box.querySelector('.tooltip');
+  if (!tip) { tip = node('div', { className: 'tooltip' }, node('div', { className: 'tv' }), node('div', { className: 'tl' })); box.append(tip); }
+  const cross = el('line', { class: 'cross', y1: pad.t, y2: pad.t + ph, visibility: 'hidden' }), dot = el('circle', { class: 'hover-dot', r: 4, visibility: 'hidden' });
+  const hit = el('rect', { x: pad.l, y: pad.t, width: pw, height: ph, fill: 'transparent' });
+  hit.addEventListener('pointermove', (e) => {
+    const rect = svg.getBoundingClientRect(), t = t0 + ((e.clientX - rect.left) * (W / rect.width) - pad.l) / pw * (t1 - t0);
+    const p = pts.reduce((a, b) => (Math.abs(b.t - t) < Math.abs(a.t - t) ? b : a));
+    for (const [k, v] of [['x1', X(p.t)], ['x2', X(p.t)]]) cross.setAttribute(k, v);
+    dot.setAttribute('cx', X(p.t)); dot.setAttribute('cy', Y(p.y));
+    cross.setAttribute('visibility', 'visible'); dot.setAttribute('visibility', 'visible');
+    tip.firstChild.textContent = `${p.y.toFixed(2)} km/h`;
+    tip.lastChild.textContent = new Date(p.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    tip.style.left = `${Math.min(Math.max(X(p.t), 80), W - 80)}px`;
+    tip.style.top = `${Y(p.y)}px`;
+    tip.classList.add('show');
+  });
+  hit.addEventListener('pointerleave', () => { cross.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); tip.classList.remove('show'); });
+  svg.append(cross, dot, hit);
+  box.querySelector('svg')?.remove();
+  box.prepend(svg);
+}
+
+// Half-hour work slots as absolute times. One work unit is one turn of the wheel: lifetime distance / lifetime work
+// is the same ~878 mm every day, and peak speed / peak rpm gives the same circumference.
+function workSlots() {
+  const out = [];
+  for (const d of data.stats?.activity.days ?? []) {
+    for (const b of d.buckets) if (b.coverage !== 'future') out.push({ t: slotTime(d.date, b.startMinuteUtc), work: Number(b.workUnits) || 0 });
+  }
+  return out.filter((x) => x.t <= Date.now()).sort((a, b) => a.t - b.t);
+}
+const mmPerTurn = () => Number(data.stats.lifetime.observedDistanceMm) / Math.max(1, Number(data.stats.lifetime.acceptedWorkUnits));
+
+function lastSession(slots) {
+  let end = slots.length - 1;
+  while (end >= 0 && !slots[end].work) end--;
+  if (end < 0) return null;
+  let start = end, gap = 0;
+  for (let i = end - 1; i >= 0 && gap <= 1; i--) { // a single quiet half hour does not end a session
+    if (slots[i].work) { start = i; gap = 0; } else gap++;
+  }
+  const part = slots.slice(start, end + 1);
+  return { from: slots[start].t, to: slots[end].t + 1800000, turns: part.reduce((a, x) => a + x.work, 0),
+    busiest: part.reduce((a, x) => (x.work > a.work ? x : a)) };
+}
+
+function renderRun() {
+  const box = $('runChart');
+  if (run.active) {
+    const r = runSummary();
+    $('runTitle').textContent = 'Live run';
+    $('runSince').textContent = run.startAt ? `Started at ${fmtTime(run.startAt)}` : `Watching since ${fmtTime(run.trackFrom)}`;
+    [['runL1', 'Time running'], ['runL2', 'Distance'], ['runL3', 'Top speed'], ['runL4', 'Average speed']].forEach(([id, t]) => { $(id).textContent = t; });
+    setV('runV1', ...dur(r.seconds)); setV('runV2', km(r.distance), 'km'); setV('runV3', kmh(r.top), 'km/h'); setV('runV4', kmh(r.avg), 'km/h');
+    box.dataset.label = 'Wheel speed during this run, km/h';
+    drawLine(box, run.samples.map((p) => ({ t: p.t, y: p.v * 0.0036 })));
+    $('runNote').textContent = run.startAt ? 'Speed in km/h, live from the wheel sensor every 10 seconds.' : 'Speed in km/h. The run had already started when you opened the page, so it is tracked from then; readings arrive every 10 seconds.';
+    return;
+  }
+  const watched = (() => { try { return JSON.parse(store.get('sww-lastrun') || 'null'); } catch { return null; } })();
+  const tail = watched ? ` Last run you watched here: ${dur(watched.seconds).join(' ')}, ${km(watched.distance)} km, top ${kmh(watched.top)} km/h, ended ${ago(watched.endedAt)}.` : '';
+  $('runNote').textContent = `The live tracker starts by itself when the hamster runs while this page is open.${tail}`;
+  if (!data.stats) return;
+  const slots = workSlots(), last = lastSession(slots);
+  if (!last) { $('runTitle').textContent = 'Live run'; $('runSince').textContent = 'Waiting for the first run'; return; }
+  const hhmm = (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  $('runTitle').textContent = 'Last run';
+  $('runSince').textContent = `${new Date(last.from).toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${hhmm(last.from)} – ${hhmm(last.to)} your time`;
+  [['runL1', 'Duration'], ['runL2', 'Distance (est.)'], ['runL3', 'Wheel turns'], ['runL4', 'Ended']].forEach(([id, t]) => { $(id).textContent = t; });
+  const hours = (last.to - last.from) / 3600000;
+  setV('runV1', `≈ ${hours < 1 ? Math.round(hours * 60) : Number(hours.toFixed(1))}`, hours < 1 ? 'min' : 'h');
+  setV('runV2', `≈ ${km(last.turns * mmPerTurn())}`, 'km');
+  setV('runV3', nf.format(last.turns), '');
+  setV('runV4', ago(new Date(last.to).toISOString()), '');
+  const recent = slots.slice(-48);
+  box.dataset.label = 'Wheel turns per half hour over the last 24 hours, in your local time';
+  drawBars(box, recent.map((x) => ({ value: x.work, label: `${hhmm(x.t)} – ${hhmm(x.t + 1800000)}`, t: x.t })),
+    { unit: 'wheel turns', every: 8, emptyText: 'No runs in the last 24 hours', xLabel: (it) => hhmm(it.t) });
+}
+
+// ---------- share on X (live numbers in the text)
+function shareText() {
+  const m = data.status?.measurement, b = data.status && (data.status.builder.projected ?? data.status.builder.anchor);
+  const dist = data.stats ? `${km(data.stats.lifetime.observedDistanceMm)} km` : null, blocks = b ? nf.format(BigInt(b.blockHeight)) : null;
+  const so = [dist && `run ${dist}`, blocks && `mined ${blocks} blocks`].filter(Boolean).join(' and ');
+  if (m && wasRunning) return `The @squeekchain hamster is running right now at ${kmh(m.speedMmPerSecond)} km/h 🐹${so ? ` It has ${so} so far.` : ''} Watch it live:`;
+  return `The @squeekchain hamster has ${so || 'been busy'} so far 🐹 Live stats, records and a wallet checker:`;
+}
+const openShare = (text, url) => open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'noopener');
+$('shareBtn').addEventListener('click', () => openShare(shareText(), 'https://www.squeekwheel.xyz/'));
+
+// ---------- live status (every 15 s, every 5 s while it runs): hero, overlay, notifications
 let wasRunning = null;
 function renderStatus(status) {
   const m = status.measurement;
@@ -711,14 +915,16 @@ function renderStatus(status) {
   renderOverlaySub();
 
   if (wasRunning === false && running) notifyRunning(m);
+  trackRun(m, running);
   wasRunning = running;
+  if (!OVERLAY) safely(renderRun);
 }
 
 function renderOverlaySub() {
   const b = data.status && (data.status.builder.projected ?? data.status.builder.anchor);
   const today = data.stats?.activity.days.at(-1);
   const parts = [];
-  if (today?.distanceMm != null) parts.push(`${km(today.distanceMm)} km today`);
+  if (today?.distanceMm != null) parts.push(`${km(today.distanceMm)} km ${sinceLabel(today.date)}`);
   if (b) parts.push(`block #${nf.format(BigInt(b.blockHeight))}`);
   $('ovSub').textContent = parts.length ? `${parts.join(' · ')} · squeekwheel.xyz` : 'squeekwheel.xyz';
 }
@@ -835,7 +1041,7 @@ const RECORDS = [
   ['peakObservedRpmMilli', 'Peak rpm', (v) => [(Number(v) / 1000).toFixed(1), 'rpm']],
   ['longestActiveWindowMinutes', 'Longest run', (v) => (Number(v) >= 60 ? [(Number(v) / 60).toFixed(Number(v) % 60 ? 1 : 0), 'h'] : [v, 'min'])],
   ['maximumDailyDistanceMm', 'Best day', (v) => [km(v), 'km']],
-  ['longestActiveDayStreak', 'Longest streak', (v) => [String(v), Number(v) === 1 ? 'day' : 'days']],
+  ['longestActiveDayStreak', 'Longest streak', (v) => [String(v), Number(v) === 1 ? 'night' : 'nights']],
   ['mostWorkHalfHour', 'Busiest 30 min', (v) => [nf.format(Number(v)), 'work']],
 ];
 
@@ -843,15 +1049,15 @@ function renderStats(st) {
   data.stats = st;
   $('distance').replaceChildren(km(st.lifetime.observedDistanceMm), node('small', { textContent: 'km' }));
   const today = st.activity.days.at(-1);
-  $('today').textContent = today?.distanceMm != null ? `Today (UTC): ${km(today.distanceMm)} km` : 'Today (UTC): no data yet';
+  $('today').textContent = today?.distanceMm != null ? `${km(today.distanceMm)} km ${sinceLabel(today.date)}` : 'No reading for the current day yet';
 
   $('recordTiles').replaceChildren(...RECORDS.filter(([k]) => st.records[k]).map(([k, label, fmt]) => {
     const rec = st.records[k], [value, unit] = fmt(rec.value);
     let when = fmtTime(rec.occurredAt, true);
-    if (k === 'maximumDailyDistanceMm') when = `${fmtUtcDay(rec.occurredAt.slice(0, 10))} (UTC day)`;
+    if (k === 'maximumDailyDistanceMm') when = `Night of ${nightOf(rec.occurredAt.slice(0, 10))}`;
     if (k === 'longestActiveDayStreak') {
       const end = new Date(Date.parse(rec.occurredAt) + (Number(rec.value) - 1) * 86400000).toISOString().slice(0, 10);
-      when = `${fmtUtcDay(rec.occurredAt.slice(0, 10))} – ${fmtUtcDay(end)} (UTC)`;
+      when = `${fmtUtcDay(rec.occurredAt.slice(0, 10))} – ${fmtUtcDay(new Date(dayStart(end) + 86400000).toISOString().slice(0, 10))}`;
     }
     if (k === 'longestActiveWindowMinutes') when = `from ${when}`;
     return node('div', { className: 'card record' },
@@ -873,15 +1079,16 @@ function renderStats(st) {
   $('dayNote').textContent = `Average work per half hour over ${st.activity.summary.activeDayCount} active days since ${fmtDate(st.lifetime.firstObservedAt)}, shown in your local time.`;
   renderOverlaySub();
   if (data.eco) renderEconomy(data.eco); // the issuance forecast uses the measured pace
+  if (!OVERLAY && !run.active) renderRun();
 }
 
 // ---------- milestones + live activity (events, every 30 s)
 const MS = {
   'measurement.distance_milestone': (p) => [`Passed ${km(p.thresholdDistanceMm).replace('.00', '')} km in total`, 'flag'],
-  'measurement.daily_distance_milestone': (p) => [`Ran ${km(p.thresholdDistanceMm).replace('.00', '')} km in one day (${fmtUtcDay(p.utcDate)}, UTC)`, 'calendar'],
+  'measurement.daily_distance_milestone': (p) => [`Ran ${km(p.thresholdDistanceMm).replace('.00', '')} km in one night (${nightOf(p.utcDate)})`, 'calendar'],
   'measurement.speed_record': (p) => [`New speed record: ${kmh(p.recordMmPerSecond)} km/h`, 'bolt'],
   'measurement.speed_milestone': (p) => [`Reached ${kmh(p.thresholdSpeedMmPerSecond)} km/h`, 'wind'],
-  'measurement.distance_streak': (p) => [`${p.days}-day streak of ${km(p.minimumDailyDistanceMm).replace('.00', '')} km or more a day`, 'flame'],
+  'measurement.distance_streak': (p) => [`${p.days} nights in a row with ${km(p.minimumDailyDistanceMm).replace('.00', '')} km or more`, 'flame'],
 };
 
 function renderMilestones(ev) {
@@ -957,9 +1164,12 @@ async function checkWallet(addr) {
     tile('SQK staked', sqkText(acct.stake.principalBaseUnits), 'principal'),
     tile('Claimable now', sqk2(acct.rewards.claimableBaseUnits), 'SQK'),
     tile('Rewards received', sqk2(lifetime), 'SQK, all time'));
+  const shareWallet = node('button', { className: 'link-btn', type: 'button', textContent: 'Share on X',
+    onclick: () => openShare(`This wallet holds ${nf.format(staked + inWallet)} Squeeks and has received ${sqk2(lifetime)} SQK in rewards on @squeekchain 🐹 Check any wallet:`, `https://www.squeekwheel.xyz/#wallet=${addr}`) });
   const head = node('div', { className: 'chart-top', style: 'margin-top:18px' },
     node('span', { className: 'chart-title', textContent: 'SQK earned per day' }),
-    node('a', { href: `https://sepolia.etherscan.io/address/${addr}`, target: '_blank', rel: 'noopener', className: 'mono', textContent: `${short(addr)} on Etherscan ↗` }));
+    node('span', { style: 'display:flex;gap:16px;align-items:baseline' }, shareWallet,
+      node('a', { href: `https://sepolia.etherscan.io/address/${addr}`, target: '_blank', rel: 'noopener', className: 'mono', textContent: `${short(addr)} on Etherscan ↗` })));
   const chart = node('div', { className: 'chart short' });
   const nftHead = node('div', { className: 'chart-top', style: 'margin-top:14px' }, node('span', { className: 'chart-title', textContent: 'Squeeks' }),
     node('span', { className: 'chart-total', textContent: acct.tokens.length ? `${acct.tokens.length > 12 ? `first 12 of ${nf.format(staked + inWallet)}` : nf.format(acct.tokens.length)}` : 'none' }));
@@ -1126,10 +1336,15 @@ function bindSeg(id, key) {
   });
 }
 
+async function liveLoop() {
+  await refreshLive();
+  const missing = !data.status || (!OVERLAY && !data.eco); // first load failed: try again soon instead of in 15 s
+  setTimeout(liveLoop, run.active ? 5_000 : missing ? 3_000 : 15_000);
+}
+
 if (OVERLAY) {
   document.documentElement.classList.add('overlay-mode');
-  refreshLive(); refreshStats();
-  setInterval(refreshLive, 15_000);
+  liveLoop(); refreshStats();
   setInterval(refreshStats, 60_000);
 } else {
   bindSeg('rangeSeg', 'range');
@@ -1143,14 +1358,13 @@ if (OVERLAY) {
   let resizeTimer;
   addEventListener('resize', () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => { drawMain(); if (data.stats) renderStats(data.stats); }, 120);
+    resizeTimer = setTimeout(() => { drawMain(); if (data.stats) renderStats(data.stats); safely(renderRun); }, 120);
   });
   renderNotify();
   $('overlayFrame').src = `${location.pathname}?overlay${document.documentElement.dataset.theme ? `&theme=${document.documentElement.dataset.theme}` : ''}`;
   const hashWallet = location.hash.match(/^#wallet=(0x[0-9a-fA-F]{40})$/);
   if (hashWallet) { $('walletInput').value = hashWallet[1]; checkWallet(hashWallet[1]); setTimeout(() => $('wallet').scrollIntoView(), 300); }
-  refreshLive(); refreshSeries(); refreshStats(); refreshEvents();
-  setInterval(refreshLive, 15_000);
+  liveLoop(); refreshSeries(); refreshStats(); refreshEvents();
   setInterval(refreshSeries, 60_000);
   setInterval(refreshStats, 60_000);
   setInterval(refreshEvents, 30_000);
