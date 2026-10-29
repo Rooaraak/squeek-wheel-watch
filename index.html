@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Squeek Wheel Watch</title>
+<meta name="description" content="Live view of the Squeekchain hamster wheel: speed, distance, blocks and SQK mined.">
+<style>
+  :root {
+    --bg: #1a1a20; --panel: #24242c; --line: #33333d; --text: #ececf1; --muted: #9a9aab;
+    --accent: #ffb347; --ok: #4ade80; --warn: #facc15; --bad: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 26px; letter-spacing: .01em; }
+  h1 span { color: var(--accent); }
+  h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-bottom: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .big { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; font-variant-numeric: tabular-nums; }
+  .row span:first-child { color: var(--muted); }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid currentColor; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+  .bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 8px 0 4px; }
+  .bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .6s ease; }
+  .wheel { width: 56px; height: 56px; border-radius: 50%; border: 4px dashed var(--accent); float: right; }
+  .spinning { animation: spin var(--spin, 2s) linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #hours { display: flex; align-items: flex-end; gap: 3px; height: 120px; margin-top: 8px; }
+  #hours div { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; opacity: .85; }
+  .axis { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; }
+  .scroll { overflow-x: auto; }
+  a { color: var(--accent); }
+  footer { margin-top: 24px; color: var(--muted); font-size: 12px; }
+  @media (prefers-reduced-motion: reduce) { .spinning { animation: none; } .bar i { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Squeek <span>Wheel</span> Watch</h1>
+    <div class="meta" id="updated">Loading…</div>
+  </header>
+
+  <section class="grid">
+    <div class="card">
+      <div class="wheel" id="wheel"></div>
+      <h2>Wheel</h2>
+      <div><span class="pill" id="state">…</span></div>
+      <div class="big" id="speed">–</div>
+      <div class="sub" id="rpm">–</div>
+    </div>
+    <div class="card">
+      <h2>Distance run</h2>
+      <div class="big" id="distance">–</div>
+      <div class="sub" id="work">–</div>
+    </div>
+    <div class="card">
+      <h2>Squeekchain blocks</h2>
+      <div class="big" id="height">–</div>
+      <div class="bar"><i id="progress"></i></div>
+      <div class="sub" id="progressText">–</div>
+    </div>
+    <div class="card">
+      <h2>SQK mined</h2>
+      <div class="big" id="minted">–</div>
+      <div class="bar"><i id="mintedBar"></i></div>
+      <div class="sub" id="mintedText">–</div>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card" style="grid-column: 1 / -1">
+      <h2>Blocks completed per hour · last 24 h</h2>
+      <div id="hours"></div>
+      <div class="axis"><span id="axisStart"></span><span id="axisEnd"></span></div>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>Last 24 hours</h2>
+      <div class="row"><span>Settlements</span><span id="d-settle">–</span></div>
+      <div class="row"><span>Blocks completed</span><span id="d-blocks">–</span></div>
+      <div class="row"><span>Work added</span><span id="d-work">–</span></div>
+      <div class="row"><span>SQK minted</span><span id="d-sqk">–</span></div>
+    </div>
+    <div class="card">
+      <h2>Economy</h2>
+      <div class="row"><span>Current round</span><span id="e-round">–</span></div>
+      <div class="row"><span>Settled through round</span><span id="e-settled">–</span></div>
+      <div class="row"><span>Squeek NFTs live</span><span id="e-nfts">–</span></div>
+      <div class="row"><span>SQK staked</span><span id="e-staked">–</span></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Recent settlements</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Time</th><th>Round</th><th>Blocks</th><th>Work</th><th>SQK minted</th><th>Tx</th></tr></thead>
+        <tbody id="recent"><tr><td colspan="6">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Live data from the public <a href="https://squeekchain.com">Squeekchain</a> API (Sepolia test network), refreshed every 15 seconds.
+    Community project, not affiliated with the Squeekchain team.
+  </footer>
+</main>
+
+<script>
+const API = 'https://api.squeekchain.com/v1';
+const UNITS_PER_BLOCK = 1_000_000_000n;
+const $ = (id) => document.getElementById(id);
+const nf = new Intl.NumberFormat('en-US');
+
+// SQK amounts arrive as 18-decimal base-unit strings; keep them in BigInt until display.
+function sqk(base, digits = 0) {
+  const v = BigInt(base);
+  const whole = v / 10n ** 18n;
+  if (!digits) return nf.format(whole);
+  const frac = (v % 10n ** 18n).toString().padStart(18, '0').slice(0, digits);
+  return `${nf.format(whole)}.${frac}`;
+}
+const pct = (part, whole) => Number((BigInt(part) * 1_000_000n) / BigInt(whole)) / 10_000;
+const ago = (iso) => {
+  const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
+  return s < 90 ? `${s}s ago` : s < 5400 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`;
+};
+const time = (iso) => new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+async function get(path) {
+  const r = await fetch(`${API}${path}`, { cache: 'no-store' });
+  if (!r.ok) throw new Error(`${path} → HTTP ${r.status}`);
+  return r.json();
+}
+
+function renderWheel(status) {
+  const m = status.measurement;
+  const stale = (Date.now() - Date.parse(m.observedAt)) / 1000 > Number(m.staleAfterSeconds);
+  const running = m.coreStatus !== 'IDLE' && m.speedMmPerSecond > 0;
+  const state = $('state');
+  state.textContent = stale ? 'Sensor stale' : running ? 'Running' : 'Resting';
+  state.className = `pill ${stale ? 'bad' : running ? 'ok' : 'warn'}`;
+
+  const mps = m.speedMmPerSecond / 1000;
+  $('speed').textContent = `${(mps * 3.6).toFixed(2)} km/h`;
+  $('rpm').textContent = `${(m.rpmMilli / 1000).toFixed(1)} rpm · ${mps.toFixed(2)} m/s · ${m.provenance} sensor`;
+  const wheel = $('wheel');
+  wheel.classList.toggle('spinning', running && !stale);
+  wheel.style.setProperty('--spin', `${Math.max(0.2, 60 / Math.max(m.rpmMilli / 1000, 1)).toFixed(2)}s`);
+
+  $('distance').textContent = `${(m.distanceMm / 1e6).toFixed(3)} km`;
+  $('work').textContent = `${nf.format(BigInt(m.cumulativeWorkUnits))} work units total`;
+
+  const b = status.builder.projected ?? status.builder.anchor;
+  const progress = Number(BigInt(b.blockProgress) * 10000n / UNITS_PER_BLOCK) / 100;
+  $('height').textContent = `#${nf.format(BigInt(b.blockHeight))}`;
+  $('progress').style.width = `${progress}%`;
+  $('progressText').textContent = `${progress.toFixed(1)}% into the next block`;
+}
+
+function renderEconomy(eco) {
+  const s = eco.supply;
+  $('minted').textContent = `${sqk(s.totalMintedBaseUnits)} SQK`;
+  const share = pct(s.totalMintedBaseUnits, s.capBaseUnits);
+  $('mintedBar').style.width = `${Math.min(100, Math.max(share, 0.5))}%`;
+  $('mintedText').textContent = `${share.toFixed(3)}% of the ${sqk(s.capBaseUnits)} SQK cap`;
+  $('e-round').textContent = nf.format(BigInt(eco.lifecycle.currentRound));
+  $('e-settled').textContent = nf.format(BigInt(eco.mining.processedThroughRound));
+  $('e-nfts').textContent = `${nf.format(BigInt(eco.nft.live))} / ${nf.format(BigInt(eco.nft.issued))}`;
+  $('e-staked').textContent = sqk(eco.staking.totalStakedBaseUnits);
+}
+
+function renderDay(day) {
+  const minted = day.buckets.reduce((sum, b) => sum + BigInt(b.sqkMintedBaseUnits), 0n);
+  $('d-settle').textContent = nf.format(BigInt(day.summary.settlementCount));
+  $('d-blocks').textContent = nf.format(BigInt(day.summary.completedBlockCount));
+  $('d-work').textContent = nf.format(BigInt(day.summary.workAdded));
+  $('d-sqk').textContent = sqk(minted);
+
+  const max = Math.max(1, ...day.buckets.map((b) => Number(b.completedBlockCount)));
+  $('hours').replaceChildren(...day.buckets.map((b) => {
+    const bar = document.createElement('div');
+    bar.style.height = `${(Number(b.completedBlockCount) / max) * 100}%`;
+    bar.title = `${time(b.startAt)} · ${b.completedBlockCount} blocks · ${sqk(b.sqkMintedBaseUnits)} SQK`;
+    return bar;
+  }));
+  $('axisStart').textContent = time(day.window.startAt);
+  $('axisEnd').textContent = time(day.window.endAt);
+
+  const rows = day.recentSettlements.map((s) => {
+    const tr = document.createElement('tr');
+    const cells = [time(s.blockTimestamp), s.settledThroughRound, s.completedBlockCount, nf.format(BigInt(s.workAdded)), sqk(s.sqkMintedBaseUnits)];
+    for (const c of cells) tr.insertCell().textContent = c;
+    const link = document.createElement('a');
+    link.href = `https://sepolia.etherscan.io/tx/${s.transactionHash}`;
+    link.textContent = `${s.transactionHash.slice(0, 10)}…`;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    tr.insertCell().append(link);
+    return tr;
+  });
+  $('recent').replaceChildren(...rows);
+}
+
+async function refresh() {
+  const [status, eco, day] = await Promise.allSettled([get('/status'), get('/economy/state'), get('/settlements?range=24h')]);
+  if (status.status === 'fulfilled') renderWheel(status.value);
+  if (eco.status === 'fulfilled') renderEconomy(eco.value);
+  if (day.status === 'fulfilled') renderDay(day.value);
+  const failed = [status, eco, day].filter((r) => r.status === 'rejected');
+  $('updated').textContent = failed.length
+    ? `Some data unavailable (${failed.map((r) => r.reason.message).join('; ')})`
+    : `Updated ${new Date().toLocaleTimeString()} · sensor read ${ago(status.value.measurement.observedAt)}`;
+}
+
+refresh();
+setInterval(refresh, 15_000);
+</script>
+</body>
+</html>
