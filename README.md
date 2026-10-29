@@ -2,13 +2,17 @@
 
 A live dashboard for [Squeekchain](https://squeekchain.com), the proof-of-work chain powered by a real hamster wheel.
 
+**Live at [www.squeekwheel.xyz](https://www.squeekwheel.xyz/)**
+
+![Squeek Wheel Watch](og.png)
+
 It shows, refreshed every 15 seconds:
 
 - **The wheel**: running or resting, speed (km/h, m/s), rpm, and whether the hardware sensor is fresh
-- **Distance run** and total work units
+- **Total work mined** and the distance of the current run
 - **Squeekchain block height** and progress into the next block
 - **SQK mined** against the supply cap
-- **Blocks completed per hour** over the last 24 hours
+- **Mining activity** over 24 hours, 7 days or 30 days: blocks, SQK minted or work, with a table view
 - **Recent settlements**, linked to Sepolia Etherscan
 
 ## Run it
