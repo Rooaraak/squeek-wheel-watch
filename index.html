@@ -3,230 +3,631 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Squeek Wheel Watch</title>
-<meta name="description" content="Live view of the Squeekchain hamster wheel: speed, distance, blocks and SQK mined.">
+<title>Squeek Wheel Watch · Live telemetry from the Squeekchain hamster</title>
+<meta name="description" content="Live telemetry from the real hamster wheel that mines Squeekchain: speed, distance, blocks and SQK mined, refreshed every 15 seconds.">
+<link rel="canonical" href="https://www.squeekwheel.xyz/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.squeekwheel.xyz/">
+<meta property="og:title" content="Squeek Wheel Watch">
+<meta property="og:description" content="Live telemetry from the real hamster wheel that mines Squeekchain: speed, distance, blocks and SQK mined.">
+<meta property="og:image" content="https://www.squeekwheel.xyz/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Squeek Wheel Watch">
+<meta name="twitter:description" content="Live telemetry from the real hamster wheel that mines Squeekchain.">
+<meta name="twitter:image" content="https://www.squeekwheel.xyz/og.png">
+<meta name="theme-color" content="#0d0d11" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='26' fill='none' stroke='%23d95926' stroke-width='7'/%3E%3Cg stroke='%23d95926' stroke-width='3' stroke-linecap='round'%3E%3Cline x1='32' y1='10' x2='32' y2='54'/%3E%3Cline x1='10' y1='32' x2='54' y2='32'/%3E%3Cline x1='16.4' y1='16.4' x2='47.6' y2='47.6'/%3E%3Cline x1='47.6' y1='16.4' x2='16.4' y2='47.6'/%3E%3C/g%3E%3Ccircle cx='32' cy='32' r='5' fill='%23d95926'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #1a1a20; --panel: #24242c; --line: #33333d; --text: #ececf1; --muted: #9a9aab;
-    --accent: #ffb347; --ok: #4ade80; --warn: #facc15; --bad: #f87171;
+    color-scheme: dark;
+    --page: #0d0d11; --surface: #16161c; --surface-2: #1e1e26; --line: #2a2a33; --grid: #25252d;
+    --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #8f8e88;
+    --accent: #d95926; --accent-soft: rgba(217, 89, 38, .18); --accent-glow: rgba(217, 89, 38, .45); --link: #f29b6c;
+    --good: #0ca30c; --critical: #d03b3b; --idle: #8f8e88;
+    --shadow: 0 1px 0 rgba(255, 255, 255, .03) inset, 0 12px 32px rgba(0, 0, 0, .35);
+    --radius: 16px;
   }
+  @media (prefers-color-scheme: light) {
+    :root:where(:not([data-theme="dark"])) {
+      color-scheme: light;
+      --page: #f6f5f2; --surface: #ffffff; --surface-2: #f3f2ee; --line: #e4e2dc; --grid: #ecebe6;
+      --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #74736c;
+      --accent: #eb6834; --accent-soft: rgba(235, 104, 52, .14); --accent-glow: rgba(235, 104, 52, .35); --link: #b4441a;
+      --shadow: 0 1px 2px rgba(20, 20, 10, .05), 0 10px 30px rgba(20, 20, 10, .06);
+    }
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page: #f6f5f2; --surface: #ffffff; --surface-2: #f3f2ee; --line: #e4e2dc; --grid: #ecebe6;
+    --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #74736c;
+    --accent: #eb6834; --accent-soft: rgba(235, 104, 52, .14); --accent-glow: rgba(235, 104, 52, .35); --link: #b4441a;
+    --shadow: 0 1px 2px rgba(20, 20, 10, .05), 0 10px 30px rgba(20, 20, 10, .06);
+  }
+
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
-  header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 20px; }
-  h1 { margin: 0; font-size: 26px; letter-spacing: .01em; }
-  h1 span { color: var(--accent); }
-  h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
-  .meta { color: var(--muted); font-size: 13px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-bottom: 14px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-  .big { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .sub { color: var(--muted); font-size: 13px; }
-  .row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; font-variant-numeric: tabular-nums; }
-  .row span:first-child { color: var(--muted); }
-  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid currentColor; }
-  .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); }
-  .bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 8px 0 4px; }
-  .bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .6s ease; }
-  .wheel { width: 56px; height: 56px; border-radius: 50%; border: 4px dashed var(--accent); float: right; }
-  .spinning { animation: spin var(--spin, 2s) linear infinite; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font: 15px/1.55 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased;
+    background-image: radial-gradient(1200px 520px at 85% -120px, var(--accent-soft), transparent 70%);
+    background-repeat: no-repeat;
+  }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+
+  /* nav */
+  .nav { display: flex; align-items: center; gap: 16px; padding: 18px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); font-size: 16px; }
+  .brand svg { width: 26px; height: 26px; }
+  .nav .spacer { flex: 1; }
+  .nav-links { display: flex; align-items: center; gap: 18px; font-size: 14px; }
+  .nav-links a { color: var(--ink-2); }
+  .icon-btn { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--ink-2); cursor: pointer; transition: background-color .2s, color .2s; }
+  .icon-btn:hover { background: var(--surface-2); color: var(--ink); }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    background: var(--surface); border: 1px solid var(--line); color: var(--ink); white-space: nowrap; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--idle); flex: none; }
+  .is-running .dot { background: var(--good); box-shadow: 0 0 0 0 rgba(12, 163, 12, .6); animation: pulse 1.8s infinite; }
+  .is-stale .dot { background: var(--critical); }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 8px rgba(12, 163, 12, 0); } 100% { box-shadow: 0 0 0 0 rgba(12, 163, 12, 0); } }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+
+  /* hero */
+  .hero { display: grid; grid-template-columns: 1.25fr .75fr; gap: 24px; align-items: center; padding: 36px 40px; margin-top: 6px; overflow: hidden; }
+  .eyebrow { margin: 0 0 10px; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  h1 { margin: 0; font-size: clamp(30px, 4.2vw, 46px); line-height: 1.08; letter-spacing: -.025em; font-weight: 700; }
+  .lede { margin: 14px 0 26px; max-width: 54ch; color: var(--ink-2); font-size: 16px; }
+  .hero-figure { display: flex; align-items: baseline; gap: 10px; }
+  .hero-figure .num { font-size: clamp(52px, 7vw, 76px); font-weight: 600; letter-spacing: -.035em; line-height: 1; }
+  .hero-figure .unit { font-size: 20px; color: var(--ink-2); font-weight: 500; }
+  .hero-meta { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--ink-3); font-size: 14px; }
+  .hero-meta b { color: var(--ink-2); font-weight: 600; }
+  .hero-art { display: grid; place-items: center; }
+  .wheel-svg { width: min(100%, 300px); height: auto; overflow: visible; }
+  .wheel-rot { transform-box: view-box; transform-origin: 120px 112px; }
+  .is-running .wheel-rot { animation: spin var(--spin, 1.5s) linear infinite; }
+  .is-running .wheel-rim { filter: drop-shadow(0 0 10px var(--accent-glow)); }
   @keyframes spin { to { transform: rotate(360deg); } }
-  #hours { display: flex; align-items: flex-end; gap: 3px; height: 120px; margin-top: 8px; }
-  #hours div { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; opacity: .85; }
-  .axis { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-top: 4px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
-  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  th { color: var(--muted); font-weight: 600; }
-  .scroll { overflow-x: auto; }
-  a { color: var(--accent); }
-  footer { margin-top: 24px; color: var(--muted); font-size: 12px; }
-  @media (prefers-reduced-motion: reduce) { .spinning { animation: none; } .bar i { transition: none; } }
+
+  /* stat tiles */
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 16px; }
+  .tile { padding: 20px 22px; min-width: 0; }
+  .tile .label { color: var(--ink-2); font-size: 14px; font-weight: 500; }
+  .tile .value { margin-top: 6px; font-size: 30px; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; }
+  .tile .value small { font-size: 16px; color: var(--ink-2); font-weight: 500; letter-spacing: 0; margin-left: 4px; }
+  .tile .sub { margin-top: 6px; color: var(--ink-3); font-size: 13px; }
+  .delta { color: var(--ink-2); font-weight: 600; }
+  .meter { height: 6px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; margin-top: 12px; }
+  .meter i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--accent); transition: width .8s ease; }
+
+  /* section heads + filters */
+  .section-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin: 40px 0 14px; }
+  .section-head h2 { margin: 0; font-size: 20px; letter-spacing: -.01em; }
+  .section-head p { margin: 4px 0 0; color: var(--ink-3); font-size: 14px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 10px; }
+  .seg { display: inline-flex; padding: 3px; border-radius: 11px; background: var(--surface); border: 1px solid var(--line); }
+  .seg button { border: 0; background: transparent; color: var(--ink-2); font: 600 13px/1 Inter, system-ui, sans-serif; padding: 8px 12px; border-radius: 8px;
+    cursor: pointer; transition: background-color .15s, color .15s; }
+  .seg button:hover { color: var(--ink); }
+  .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); box-shadow: 0 0 0 1px var(--line) inset; }
+
+  /* chart */
+  .chart-card { padding: 22px 22px 16px; }
+  .chart-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: baseline; margin-bottom: 8px; }
+  .chart-title { font-weight: 600; }
+  .chart-total { color: var(--ink-3); font-size: 14px; }
+  .chart-total b { color: var(--ink); font-weight: 600; }
+  .link-btn { border: 0; background: none; color: var(--link); font: 500 13px Inter, system-ui, sans-serif; cursor: pointer; padding: 0; }
+  .chart { position: relative; height: 300px; transition: opacity .25s; }
+  .chart.loading { opacity: .45; }
+  .chart svg { display: block; width: 100%; height: 100%; }
+  .chart .tick { fill: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .chart .gridline { stroke: var(--grid); stroke-width: 1; }
+  .chart .baseline { stroke: var(--line); stroke-width: 1; }
+  .chart .bar { fill: var(--accent); transition: opacity .15s; }
+  .chart .hit { fill: transparent; cursor: default; outline: none; }
+  .chart .hit:hover + .bar, .chart .hit:focus + .bar { opacity: .75; }
+  .chart .peak { fill: var(--ink-2); font-size: 12px; font-weight: 600; }
+  .tooltip { position: absolute; pointer-events: none; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px 12px; font-size: 13px; box-shadow: var(--shadow); white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); opacity: 0; transition: opacity .12s; }
+  .tooltip.show { opacity: 1; }
+  .tooltip .tv { font-weight: 700; font-size: 15px; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+  .tooltip .tv::before { content: ""; width: 12px; height: 3px; border-radius: 2px; background: var(--accent); }
+  .tooltip .tl { color: var(--ink-3); }
+  .data-table-wrap { overflow-x: auto; margin-top: 10px; }
+
+  /* lower grid */
+  .grid-2 { display: grid; grid-template-columns: .9fr 1.1fr; gap: 16px; }
+  .panel { padding: 22px; min-width: 0; }
+  .panel h3 { margin: 0 0 14px; font-size: 16px; }
+  .kv { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--grid); font-size: 14px; }
+  .kv:last-of-type { border-bottom: 0; }
+  .kv span:first-child { color: var(--ink-2); }
+  .kv span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .milestone { margin-top: 18px; }
+  .milestone .row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+  .milestone .row span:first-child { font-weight: 600; }
+  .milestone .row span:last-child { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th { text-align: left; color: var(--ink-3); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; padding: 0 10px 10px; white-space: nowrap; }
+  td { padding: 11px 10px; border-top: 1px solid var(--grid); white-space: nowrap; }
+  th:first-child, td:first-child { padding-left: 0; }
+  td.num, th.num { text-align: right; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 13px; }
+  .table-scroll { overflow-x: auto; }
+
+  /* how it works */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .step { padding: 22px; }
+  .step .n { font: 500 13px "JetBrains Mono", ui-monospace, monospace; color: var(--link); }
+  .step h4 { margin: 8px 0 6px; font-size: 16px; }
+  .step p { margin: 0; color: var(--ink-2); font-size: 14px; }
+
+  .banner { display: none; margin-top: 16px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 14px; }
+  .banner.show { display: flex; gap: 10px; align-items: center; }
+  .banner .dot { background: var(--critical); }
+
+  footer { margin: 48px 0 32px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; color: var(--ink-3); font-size: 13px; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; padding: 28px 22px; }
+    .hero-art { order: -1; }
+    .wheel-svg { width: 190px; }
+    .tiles { grid-template-columns: repeat(2, 1fr); }
+    .grid-2, .steps { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 520px) {
+    .tiles { grid-template-columns: 1fr; }
+    .nav-links .hide-sm, .col-round { display: none; }
+    .chart { height: 240px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .is-running .wheel-rot, .is-running .dot { animation: none; }
+    .meter i { transition: none; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>Squeek <span>Wheel</span> Watch</h1>
-    <div class="meta" id="updated">Loading…</div>
+<div class="wrap">
+  <header class="nav">
+    <a class="brand" href="./" aria-label="Squeek Wheel Watch home">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="25" fill="none" stroke="var(--accent)" stroke-width="7"/><g stroke="var(--accent)" stroke-width="3" stroke-linecap="round"><line x1="32" y1="12" x2="32" y2="52"/><line x1="12" y1="32" x2="52" y2="32"/><line x1="17.9" y1="17.9" x2="46.1" y2="46.1"/><line x1="46.1" y1="17.9" x2="17.9" y2="46.1"/></g><circle cx="32" cy="32" r="5" fill="var(--accent)"/></svg>
+      Squeek Wheel Watch
+    </a>
+    <span class="pill" id="pill"><span class="dot"></span><span id="pillText">Connecting…</span></span>
+    <span class="spacer"></span>
+    <nav class="nav-links">
+      <a class="hide-sm" href="https://squeekchain.com" rel="noopener">Squeekchain ↗</a>
+      <a class="hide-sm" href="https://github.com/Rooaraak/squeek-wheel-watch" rel="noopener">Source ↗</a>
+      <button class="icon-btn" id="theme" type="button" aria-label="Switch light or dark theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </nav>
   </header>
 
-  <section class="grid">
-    <div class="card">
-      <div class="wheel" id="wheel"></div>
-      <h2>Wheel</h2>
-      <div><span class="pill" id="state">…</span></div>
-      <div class="big" id="speed">–</div>
-      <div class="sub" id="rpm">–</div>
-    </div>
-    <div class="card">
-      <h2>Distance run</h2>
-      <div class="big" id="distance">–</div>
-      <div class="sub" id="work">–</div>
-    </div>
-    <div class="card">
-      <h2>Squeekchain blocks</h2>
-      <div class="big" id="height">–</div>
-      <div class="bar"><i id="progress"></i></div>
-      <div class="sub" id="progressText">–</div>
-    </div>
-    <div class="card">
-      <h2>SQK mined</h2>
-      <div class="big" id="minted">–</div>
-      <div class="bar"><i id="mintedBar"></i></div>
-      <div class="sub" id="mintedText">–</div>
-    </div>
-  </section>
+  <main>
+    <section class="hero card" id="hero" aria-labelledby="headline">
+      <div>
+        <p class="eyebrow">Live from the wheel</p>
+        <h1 id="headline">Checking on the hamster…</h1>
+        <p class="lede">Squeekchain is mined by a real hamster. A hardware sensor on its wheel turns every run into proof-of-work blocks on the Sepolia test network, and this page follows it live.</p>
+        <div class="hero-figure" aria-live="polite"><span class="num" id="speed">–</span><span class="unit">km/h</span></div>
+        <div class="hero-meta">
+          <span><b id="rpm">–</b> rpm</span>
+          <span><b id="mps">–</b> m/s</span>
+          <span id="sensor">Sensor –</span>
+        </div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <svg class="wheel-svg" viewBox="0 0 240 240">
+          <g stroke="var(--line)" stroke-width="8" stroke-linecap="round"><line x1="120" y1="112" x2="76" y2="222"/><line x1="120" y1="112" x2="164" y2="222"/></g>
+          <line x1="56" y1="224" x2="184" y2="224" stroke="var(--line)" stroke-width="8" stroke-linecap="round"/>
+          <g class="wheel-rot" id="wheel">
+            <circle class="wheel-rim" cx="120" cy="112" r="96" fill="none" stroke="var(--accent)" stroke-width="10"/>
+            <circle cx="120" cy="112" r="84" fill="none" stroke="var(--accent)" stroke-opacity=".35" stroke-width="2"/>
+            <g id="rungs" stroke="var(--surface)" stroke-width="3" stroke-linecap="round"></g>
+            <g id="spokes" stroke="var(--ink-3)" stroke-opacity=".55" stroke-width="3" stroke-linecap="round"></g>
+            <circle cx="120" cy="112" r="15" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="4"/>
+            <circle cx="120" cy="112" r="4" fill="var(--accent)"/>
+          </g>
+        </svg>
+      </div>
+    </section>
 
-  <section class="grid">
-    <div class="card" style="grid-column: 1 / -1">
-      <h2>Blocks completed per hour · last 24 h</h2>
-      <div id="hours"></div>
-      <div class="axis"><span id="axisStart"></span><span id="axisEnd"></span></div>
-    </div>
-  </section>
+    <div class="banner" id="banner" role="status"><span class="dot"></span><span id="bannerText"></span></div>
 
-  <section class="grid">
-    <div class="card">
-      <h2>Last 24 hours</h2>
-      <div class="row"><span>Settlements</span><span id="d-settle">–</span></div>
-      <div class="row"><span>Blocks completed</span><span id="d-blocks">–</span></div>
-      <div class="row"><span>Work added</span><span id="d-work">–</span></div>
-      <div class="row"><span>SQK minted</span><span id="d-sqk">–</span></div>
-    </div>
-    <div class="card">
-      <h2>Economy</h2>
-      <div class="row"><span>Current round</span><span id="e-round">–</span></div>
-      <div class="row"><span>Settled through round</span><span id="e-settled">–</span></div>
-      <div class="row"><span>Squeek NFTs live</span><span id="e-nfts">–</span></div>
-      <div class="row"><span>SQK staked</span><span id="e-staked">–</span></div>
-    </div>
-  </section>
+    <section class="tiles" aria-label="Key numbers">
+      <div class="card tile">
+        <div class="label">Total work mined</div>
+        <div class="value" id="work">–</div>
+        <div class="sub" id="distance">–</div>
+      </div>
+      <div class="card tile">
+        <div class="label">Blocks mined</div>
+        <div class="value" id="height">–</div>
+        <div class="meter" title="Progress into the next block"><i id="blockMeter"></i></div>
+        <div class="sub"><span id="blockProgress">–</span> · <span class="delta" id="blocksDelta">–</span></div>
+      </div>
+      <div class="card tile">
+        <div class="label">SQK mined</div>
+        <div class="value" id="minted">–</div>
+        <div class="meter" title="Share of the supply cap mined"><i id="capMeter"></i></div>
+        <div class="sub"><span id="capShare">–</span> · <span class="delta" id="sqkDelta">–</span></div>
+      </div>
+      <div class="card tile">
+        <div class="label">Current round</div>
+        <div class="value" id="round">–</div>
+        <div class="sub" id="settled">–</div>
+      </div>
+    </section>
 
-  <section class="card">
-    <h2>Recent settlements</h2>
-    <div class="scroll">
-      <table>
-        <thead><tr><th>Time</th><th>Round</th><th>Blocks</th><th>Work</th><th>SQK minted</th><th>Tx</th></tr></thead>
-        <tbody id="recent"><tr><td colspan="6">Loading…</td></tr></tbody>
-      </table>
+    <div class="section-head">
+      <div>
+        <h2>Mining activity</h2>
+        <p>Settled on Sepolia by Squeekchain's oracle.</p>
+      </div>
+      <div class="filters" aria-label="Chart filters">
+        <div class="seg" role="group" aria-label="Time range" id="rangeSeg">
+          <button type="button" data-range="24h" aria-pressed="true">24 hours</button>
+          <button type="button" data-range="7d" aria-pressed="false">7 days</button>
+          <button type="button" data-range="30d" aria-pressed="false">30 days</button>
+        </div>
+        <div class="seg" role="group" aria-label="Measure" id="metricSeg">
+          <button type="button" data-metric="blocks" aria-pressed="true">Blocks</button>
+          <button type="button" data-metric="sqk" aria-pressed="false">SQK minted</button>
+          <button type="button" data-metric="work" aria-pressed="false">Work</button>
+        </div>
+      </div>
     </div>
-  </section>
+
+    <section class="card chart-card" aria-labelledby="chartTitle">
+      <div class="chart-top">
+        <div><span class="chart-title" id="chartTitle">Blocks completed per hour</span></div>
+        <div class="chart-total" id="chartTotal"></div>
+      </div>
+      <div class="chart" id="chart"><div class="tooltip" id="tooltip"><div class="tv" id="tipValue"></div><div class="tl" id="tipLabel"></div></div></div>
+      <button class="link-btn" type="button" id="tableToggle" aria-expanded="false" aria-controls="dataTable">Show as table</button>
+      <div class="data-table-wrap" id="dataTable" hidden>
+        <table><thead><tr><th>Period</th><th class="num" id="tableMetric">Blocks</th></tr></thead><tbody id="tableBody"></tbody></table>
+      </div>
+    </section>
+
+    <section class="grid-2" style="margin-top:16px">
+      <div class="card panel" aria-labelledby="ecoTitle">
+        <h3 id="ecoTitle">Economy</h3>
+        <div class="kv"><span>Squeek NFTs live</span><span id="nfts">–</span></div>
+        <div class="kv"><span>SQK staked</span><span id="staked">–</span></div>
+        <div class="kv"><span>Staking rewards paid</span><span id="rewards">–</span></div>
+        <div class="kv"><span>Funded to the gacha</span><span id="gacha">–</span></div>
+        <div class="kv"><span>Funded to staking</span><span id="stakeFunded">–</span></div>
+        <div class="kv"><span>Supply cap</span><span id="cap">–</span></div>
+        <div class="milestone">
+          <div class="row"><span>Launch bonus period</span><span id="bonusText">–</span></div>
+          <div class="meter"><i id="bonusMeter"></i></div>
+        </div>
+        <div class="milestone">
+          <div class="row"><span>First halving</span><span id="halvingText">–</span></div>
+          <div class="meter"><i id="halvingMeter"></i></div>
+        </div>
+      </div>
+      <div class="card panel" aria-labelledby="setTitle">
+        <h3 id="setTitle">Recent settlements</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Settled</th><th class="num col-round">Round</th><th class="num">Blocks</th><th class="num">SQK</th><th>Transaction</th></tr></thead>
+            <tbody id="recent"><tr><td colspan="5">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-head"><div><h2>How the wheel mines</h2></div></div>
+    <section class="steps">
+      <div class="card step"><div class="n">01</div><h4>The hamster runs</h4><p>A hardware sensor on the wheel measures every turn: speed, rpm and distance, reported live.</p></div>
+      <div class="card step"><div class="n">02</div><h4>Runs become work</h4><p>Each round, Squeekchain's oracle closes the wheel's work and settles it on Sepolia as completed blocks.</p></div>
+      <div class="card step"><div class="n">03</div><h4>Blocks mint SQK</h4><p>Every block issues SQK on a halving schedule, with a launch bonus at the start, toward a 2.1 billion cap.</p></div>
+    </section>
+  </main>
 
   <footer>
-    Live data from the public <a href="https://squeekchain.com">Squeekchain</a> API (Sepolia test network), refreshed every 15 seconds.
-    Community project, not affiliated with the Squeekchain team.
+    <span>Live data from the public Squeekchain API · refreshed every 15 seconds · Sepolia test network, test SQK.</span>
+    <span>Community project, not affiliated with the Squeekchain team · <a href="https://github.com/Rooaraak/squeek-wheel-watch" rel="noopener">Source</a></span>
   </footer>
-</main>
+</div>
 
 <script>
 const API = 'https://api.squeekchain.com/v1';
 const UNITS_PER_BLOCK = 1_000_000_000n;
+const WEI = 10n ** 18n;
 const $ = (id) => document.getElementById(id);
 const nf = new Intl.NumberFormat('en-US');
+const compact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 });
+const view = { range: '24h', metric: 'blocks' };
+const METRICS = {
+  blocks: { label: 'Blocks completed', unit: 'blocks', key: 'completedBlockCount' },
+  sqk: { label: 'SQK minted', unit: 'SQK', key: 'sqkMintedBaseUnits', sqk: true },
+  work: { label: 'Work added', unit: 'work units', key: 'workAdded' },
+};
+const PER = { '24h': 'per hour', '7d': 'per 6 hours', '30d': 'per day' };
 
-// SQK amounts arrive as 18-decimal base-unit strings; keep them in BigInt until display.
-function sqk(base, digits = 0) {
-  const v = BigInt(base);
-  const whole = v / 10n ** 18n;
-  if (!digits) return nf.format(whole);
-  const frac = (v % 10n ** 18n).toString().padStart(18, '0').slice(0, digits);
-  return `${nf.format(whole)}.${frac}`;
-}
-const pct = (part, whole) => Number((BigInt(part) * 1_000_000n) / BigInt(whole)) / 10_000;
+// SQK arrives as 18-decimal base-unit strings; whole SQK fits safely in a Number (cap is 2.1 billion).
+const sqkNum = (base) => Number(BigInt(base) / WEI);
+const sqkText = (base) => compact.format(sqkNum(base));
+const pctOf = (part, whole) => Number((BigInt(part) * 1_000_000n) / BigInt(whole)) / 10_000;
 const ago = (iso) => {
   const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
-  return s < 90 ? `${s}s ago` : s < 5400 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`;
+  if (s < 60) return `${s} s ago`;
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 172800) return `${Math.round(s / 3600)} h ago`;
+  return `${Math.round(s / 86400)} days ago`;
 };
-const time = (iso) => new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const fmtTime = (iso, withDay) => new Date(iso).toLocaleString([], withDay
+  ? { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit' });
 
 async function get(path) {
-  const r = await fetch(`${API}${path}`, { cache: 'no-store' });
-  if (!r.ok) throw new Error(`${path} → HTTP ${r.status}`);
+  const r = await fetch(`${API}${path}`, { cache: 'no-store', signal: AbortSignal.timeout(12000) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
 }
 
-function renderWheel(status) {
+// ---- wheel art: rungs on the rim and spokes to the hub
+(function drawWheel() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const line = (g, a, r1, r2) => {
+    const l = document.createElementNS(ns, 'line');
+    const c = Math.cos(a), s = Math.sin(a);
+    l.setAttribute('x1', 120 + r1 * c); l.setAttribute('y1', 112 + r1 * s);
+    l.setAttribute('x2', 120 + r2 * c); l.setAttribute('y2', 112 + r2 * s);
+    g.append(l);
+  };
+  for (let i = 0; i < 28; i++) line($('rungs'), (i / 28) * 2 * Math.PI, 92, 100);
+  for (let i = 0; i < 8; i++) line($('spokes'), (i / 8) * 2 * Math.PI + Math.PI / 8, 18, 82);
+})();
+
+// ---- live status + economy (every 15 s)
+function renderStatus(status) {
   const m = status.measurement;
   const stale = (Date.now() - Date.parse(m.observedAt)) / 1000 > Number(m.staleAfterSeconds);
-  const running = m.coreStatus !== 'IDLE' && m.speedMmPerSecond > 0;
-  const state = $('state');
-  state.textContent = stale ? 'Sensor stale' : running ? 'Running' : 'Resting';
-  state.className = `pill ${stale ? 'bad' : running ? 'ok' : 'warn'}`;
+  const running = !stale && m.coreStatus !== 'IDLE' && m.speedMmPerSecond > 0;
+  const hero = $('hero'), pill = $('pill');
+  for (const el of [hero, pill]) {
+    el.classList.toggle('is-running', running);
+    el.classList.toggle('is-stale', stale);
+  }
+  $('pillText').textContent = stale ? 'Sensor offline' : running ? 'Running now' : 'Resting';
+  $('headline').textContent = stale ? 'The wheel sensor is offline' : running ? 'The hamster is running' : 'The hamster is resting';
 
-  const mps = m.speedMmPerSecond / 1000;
-  $('speed').textContent = `${(mps * 3.6).toFixed(2)} km/h`;
-  $('rpm').textContent = `${(m.rpmMilli / 1000).toFixed(1)} rpm · ${mps.toFixed(2)} m/s · ${m.provenance} sensor`;
-  const wheel = $('wheel');
-  wheel.classList.toggle('spinning', running && !stale);
-  wheel.style.setProperty('--spin', `${Math.max(0.2, 60 / Math.max(m.rpmMilli / 1000, 1)).toFixed(2)}s`);
+  const mps = m.speedMmPerSecond / 1000, rpm = m.rpmMilli / 1000;
+  $('speed').textContent = (mps * 3.6).toFixed(2);
+  $('rpm').textContent = rpm.toFixed(1);
+  $('mps').textContent = mps.toFixed(2);
+  $('sensor').textContent = `Hardware sensor read ${ago(m.observedAt)}`;
+  $('wheel').style.setProperty('--spin', `${Math.min(6, Math.max(0.35, 60 / Math.max(rpm, 1))).toFixed(2)}s`);
 
-  $('distance').textContent = `${(m.distanceMm / 1e6).toFixed(3)} km`;
-  $('work').textContent = `${nf.format(BigInt(m.cumulativeWorkUnits))} work units total`;
+  // the sensor's distance counter covers the current run and resets while the wheel rests
+  $('work').replaceChildren(document.createTextNode(nf.format(BigInt(m.cumulativeWorkUnits))), Object.assign(document.createElement('small'), { textContent: 'units' }));
+  $('distance').textContent = running || m.distanceMm > 0 ? `This run: ${(m.distanceMm / 1e6).toFixed(2)} km` : 'Waiting for the next run';
 
   const b = status.builder.projected ?? status.builder.anchor;
-  const progress = Number(BigInt(b.blockProgress) * 10000n / UNITS_PER_BLOCK) / 100;
+  const progress = Number((BigInt(b.blockProgress) * 1000n) / UNITS_PER_BLOCK) / 10;
   $('height').textContent = `#${nf.format(BigInt(b.blockHeight))}`;
-  $('progress').style.width = `${progress}%`;
-  $('progressText').textContent = `${progress.toFixed(1)}% into the next block`;
+  $('blockMeter').style.width = `${progress}%`;
+  $('blockProgress').textContent = `${progress.toFixed(0)}% into the next`;
 }
 
 function renderEconomy(eco) {
-  const s = eco.supply;
-  $('minted').textContent = `${sqk(s.totalMintedBaseUnits)} SQK`;
-  const share = pct(s.totalMintedBaseUnits, s.capBaseUnits);
-  $('mintedBar').style.width = `${Math.min(100, Math.max(share, 0.5))}%`;
-  $('mintedText').textContent = `${share.toFixed(3)}% of the ${sqk(s.capBaseUnits)} SQK cap`;
-  $('e-round').textContent = nf.format(BigInt(eco.lifecycle.currentRound));
-  $('e-settled').textContent = nf.format(BigInt(eco.mining.processedThroughRound));
-  $('e-nfts').textContent = `${nf.format(BigInt(eco.nft.live))} / ${nf.format(BigInt(eco.nft.issued))}`;
-  $('e-staked').textContent = sqk(eco.staking.totalStakedBaseUnits);
+  const s = eco.supply, sch = eco.schedule, height = BigInt(sch.closedThroughBlock);
+  const share = pctOf(s.totalMintedBaseUnits, s.capBaseUnits);
+  $('minted').textContent = sqkText(s.totalMintedBaseUnits);
+  $('capMeter').style.width = `${Math.min(100, Math.max(share, 0.6))}%`;
+  $('capShare').textContent = `${share < 0.01 ? share.toFixed(4) : share.toFixed(2)}% of cap`;
+  $('round').textContent = nf.format(BigInt(eco.lifecycle.currentRound));
+  $('settled').textContent = `Settled through round ${nf.format(BigInt(eco.mining.processedThroughRound))}`;
+  $('nfts').textContent = `${nf.format(BigInt(eco.nft.live))} of ${nf.format(BigInt(eco.nft.issued))}`;
+  $('staked').textContent = `${sqkText(eco.staking.totalStakedBaseUnits)} SQK`;
+  $('rewards').textContent = `${sqkText(eco.staking.rewards.paidBaseUnits)} SQK`;
+  $('cap').textContent = `${compact.format(sqkNum(s.capBaseUnits))} SQK`;
+  $('gacha').textContent = `${sqkText(eco.mining.gachaFundedBaseUnits)} SQK`;
+  $('stakeFunded').textContent = `${sqkText(eco.mining.stakingFundedBaseUnits)} SQK`;
+  const bonus = BigInt(sch.bonusBlocks), halving = BigInt(sch.halvingBlocks);
+  $('bonusText').textContent = `block ${nf.format(height)} of ${nf.format(bonus)}`;
+  $('bonusMeter').style.width = `${Math.min(100, pctOf(height, bonus))}%`;
+  $('halvingText').textContent = `at block ${nf.format(halving)}`;
+  $('halvingMeter').style.width = `${Math.min(100, Math.max(0.6, pctOf(height, halving)))}%`;
 }
 
-function renderDay(day) {
-  const minted = day.buckets.reduce((sum, b) => sum + BigInt(b.sqkMintedBaseUnits), 0n);
-  $('d-settle').textContent = nf.format(BigInt(day.summary.settlementCount));
-  $('d-blocks').textContent = nf.format(BigInt(day.summary.completedBlockCount));
-  $('d-work').textContent = nf.format(BigInt(day.summary.workAdded));
-  $('d-sqk').textContent = sqk(minted);
+// ---- chart (bars, single series) + table twin + recent settlements
+let series = null;
 
-  const max = Math.max(1, ...day.buckets.map((b) => Number(b.completedBlockCount)));
-  $('hours').replaceChildren(...day.buckets.map((b) => {
-    const bar = document.createElement('div');
-    bar.style.height = `${(Number(b.completedBlockCount) / max) * 100}%`;
-    bar.title = `${time(b.startAt)} · ${b.completedBlockCount} blocks · ${sqk(b.sqkMintedBaseUnits)} SQK`;
-    return bar;
-  }));
-  $('axisStart').textContent = time(day.window.startAt);
-  $('axisEnd').textContent = time(day.window.endAt);
+function niceScale(v) {
+  if (v <= 0) return { top: 4, step: 1 };
+  const raw = v / 4, p = 10 ** Math.floor(Math.log10(raw)), n = raw / p;
+  const step = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+  return { top: Math.ceil(v / step) * step, step };
+}
 
-  const rows = day.recentSettlements.map((s) => {
-    const tr = document.createElement('tr');
-    const cells = [time(s.blockTimestamp), s.settledThroughRound, s.completedBlockCount, nf.format(BigInt(s.workAdded)), sqk(s.sqkMintedBaseUnits)];
-    for (const c of cells) tr.insertCell().textContent = c;
-    const link = document.createElement('a');
-    link.href = `https://sepolia.etherscan.io/tx/${s.transactionHash}`;
-    link.textContent = `${s.transactionHash.slice(0, 10)}…`;
-    link.target = '_blank';
-    link.rel = 'noopener';
-    tr.insertCell().append(link);
-    return tr;
+function bucketValue(bk) {
+  const m = METRICS[view.metric];
+  return m.sqk ? sqkNum(bk[m.key]) : Number(bk[m.key]);
+}
+
+function periodLabel(bk) {
+  const days = view.range !== '24h';
+  return `${fmtTime(bk.startAt, days)} – ${fmtTime(bk.endAt, days && view.range === '7d')}`;
+}
+
+function drawChart() {
+  if (!series) return;
+  const box = $('chart'), W = box.clientWidth, H = box.clientHeight;
+  const pad = { l: 46, r: 8, t: 22, b: 30 }, pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  const buckets = series.buckets, vals = buckets.map(bucketValue);
+  const { top: max, step } = niceScale(Math.max(...vals)), ticks = Math.round(max / step);
+  const ns = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, text) => {
+    const e = document.createElementNS(ns, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `${$('chartTitle').textContent}. Use the table view for every value.` });
+  for (let i = 0; i <= ticks; i++) {
+    const y = pad.t + ph - (ph * i) / ticks;
+    svg.append(el('line', { class: i ? 'gridline' : 'baseline', x1: pad.l, x2: W - pad.r, y1: y, y2: y }));
+    svg.append(el('text', { class: 'tick', x: pad.l - 10, y: y + 4, 'text-anchor': 'end' }, compact.format(step * i)));
+  }
+  const band = pw / buckets.length, bw = Math.max(2, Math.min(24, band - 2));
+  const peak = vals.indexOf(Math.max(...vals));
+  const tip = $('tooltip');
+  buckets.forEach((bk, i) => {
+    const v = vals[i], x = pad.l + i * band, bx = x + (band - bw) / 2;
+    const h = v > 0 ? Math.max(2, (v / max) * ph) : 0, y = pad.t + ph - h, r = Math.min(4, bw / 2, h);
+    const hit = el('rect', { class: 'hit', x, y: pad.t, width: band, height: ph, tabindex: 0,
+      'aria-label': `${periodLabel(bk)}: ${nf.format(v)} ${METRICS[view.metric].unit}` });
+    const show = () => {
+      $('tipValue').textContent = `${nf.format(v)} ${METRICS[view.metric].unit}`;
+      $('tipLabel').textContent = periodLabel(bk);
+      tip.style.left = `${Math.min(Math.max(x + band / 2, 90), W - 90)}px`;
+      tip.style.top = `${Math.min(y, pad.t + ph - 4)}px`;
+      tip.classList.add('show');
+    };
+    hit.addEventListener('pointerenter', show);
+    hit.addEventListener('focus', show);
+    hit.addEventListener('pointerleave', () => tip.classList.remove('show'));
+    hit.addEventListener('blur', () => tip.classList.remove('show'));
+    svg.append(hit);
+    // rounded data-end on top, square at the baseline
+    svg.append(h > 0
+      ? el('path', { class: 'bar', d: `M${bx},${pad.t + ph}V${y + r}Q${bx},${y} ${bx + r},${y}H${bx + bw - r}Q${bx + bw},${y} ${bx + bw},${y + r}V${pad.t + ph}Z` })
+      : el('g', {}));
+    if (i === peak && v > 0) {
+      svg.append(el('text', { class: 'peak', x: bx + bw / 2, y: y - 7, 'text-anchor': i === 0 ? 'start' : i === buckets.length - 1 ? 'end' : 'middle' }, compact.format(v)));
+    }
   });
-  $('recent').replaceChildren(...rows);
+  const every = Math.ceil(buckets.length / Math.max(2, Math.floor(pw / 90)));
+  buckets.forEach((bk, i) => {
+    if (i % every) return;
+    const label = view.range === '24h' ? fmtTime(bk.startAt) : new Date(bk.startAt).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    svg.append(el('text', { class: 'tick', x: pad.l + i * band + band / 2, y: H - 8, 'text-anchor': 'middle' }, label));
+  });
+  box.querySelector('svg')?.remove();
+  box.prepend(svg);
 }
 
-async function refresh() {
-  const [status, eco, day] = await Promise.allSettled([get('/status'), get('/economy/state'), get('/settlements?range=24h')]);
-  if (status.status === 'fulfilled') renderWheel(status.value);
+function renderSeries(s) {
+  series = s;
+  const m = METRICS[view.metric];
+  $('chartTitle').textContent = `${m.label} ${PER[view.range]}`;
+  const total = s.buckets.reduce((sum, bk) => sum + bucketValue(bk), 0);
+  $('chartTotal').innerHTML = '';
+  $('chartTotal').append(Object.assign(document.createElement('b'), { textContent: compact.format(total) }), document.createTextNode(` ${m.unit} in the last ${view.range.replace('h', ' hours').replace('d', ' days')}`));
+  $('tableMetric').textContent = m.label;
+  $('tableBody').replaceChildren(...s.buckets.map((bk) => {
+    const tr = document.createElement('tr');
+    tr.insertCell().textContent = periodLabel(bk);
+    const td = tr.insertCell(); td.className = 'num'; td.textContent = nf.format(bucketValue(bk));
+    return tr;
+  }));
+  drawChart();
+  $('chart').classList.remove('loading');
+}
+
+function renderRecent(s) {
+  $('recent').replaceChildren(...s.recentSettlements.slice(0, 8).map((st) => {
+    const tr = document.createElement('tr');
+    const when = tr.insertCell(); when.textContent = ago(st.blockTimestamp); when.title = new Date(st.blockTimestamp).toLocaleString();
+    for (const [v, cls] of [[nf.format(BigInt(st.settledThroughRound)), 'num col-round'], [nf.format(BigInt(st.completedBlockCount)), 'num'], [sqkText(st.sqkMintedBaseUnits), 'num']]) {
+      const td = tr.insertCell(); td.className = cls; td.textContent = v;
+    }
+    const a = Object.assign(document.createElement('a'), { href: `https://sepolia.etherscan.io/tx/${st.transactionHash}`, textContent: `${st.transactionHash.slice(0, 8)}…${st.transactionHash.slice(-6)}`, rel: 'noopener', target: '_blank', className: 'mono' });
+    tr.insertCell().append(a);
+    return tr;
+  }));
+}
+
+// ---- deltas for the tiles always come from the 24 h window
+function renderDeltas(day) {
+  const sqk = day.buckets.reduce((sum, bk) => sum + BigInt(bk.sqkMintedBaseUnits), 0n);
+  $('blocksDelta').textContent = `+${nf.format(BigInt(day.summary.completedBlockCount))} in 24 h`;
+  $('sqkDelta').textContent = `+${sqkText(sqk)} in 24 h`;
+}
+
+function banner(msg) {
+  $('banner').classList.toggle('show', !!msg);
+  $('bannerText').textContent = msg || '';
+}
+
+async function refreshLive() {
+  const [status, eco] = await Promise.allSettled([get('/status'), get('/economy/state')]);
+  if (status.status === 'fulfilled') renderStatus(status.value);
   if (eco.status === 'fulfilled') renderEconomy(eco.value);
-  if (day.status === 'fulfilled') renderDay(day.value);
-  const failed = [status, eco, day].filter((r) => r.status === 'rejected');
-  $('updated').textContent = failed.length
-    ? `Some data unavailable (${failed.map((r) => r.reason.message).join('; ')})`
-    : `Updated ${new Date().toLocaleTimeString()} · sensor read ${ago(status.value.measurement.observedAt)}`;
+  banner(status.status === 'rejected' || eco.status === 'rejected' ? 'Live data is temporarily unavailable. Retrying every 15 seconds.' : '');
 }
 
-refresh();
-setInterval(refresh, 15_000);
+async function refreshSeries() {
+  $('chart').classList.add('loading');
+  try {
+    const want = view.range;
+    const [s, day] = await Promise.all([get(`/settlements?range=${want}`), want === '24h' ? null : get('/settlements?range=24h')]);
+    if (want !== view.range) return; // a newer range was picked meanwhile
+    renderSeries(s);
+    renderRecent(s);
+    renderDeltas(day ?? s);
+  } catch {
+    $('chart').classList.remove('loading');
+    banner('Chart data is temporarily unavailable. Retrying shortly.');
+  }
+}
+
+function bindSeg(id, key) {
+  $(id).addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    view[key] = btn.dataset[key];
+    for (const b of $(id).querySelectorAll('button')) b.setAttribute('aria-pressed', String(b === btn));
+    if (key === 'range') refreshSeries(); else if (series) renderSeries(series);
+  });
+}
+bindSeg('rangeSeg', 'range');
+bindSeg('metricSeg', 'metric');
+
+$('tableToggle').addEventListener('click', () => {
+  const open = $('dataTable').hidden;
+  $('dataTable').hidden = !open;
+  $('tableToggle').setAttribute('aria-expanded', String(open));
+  $('tableToggle').textContent = open ? 'Hide table' : 'Show as table';
+});
+
+// theme toggle; the choice is a per-viewer convenience, so storage failures are fine
+(function theme() {
+  const root = document.documentElement;
+  try { const t = localStorage.getItem('sww-theme'); if (t) root.dataset.theme = t; } catch {}
+  $('theme').addEventListener('click', () => {
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem('sww-theme', root.dataset.theme); } catch {}
+  });
+})();
+
+let resizeTimer;
+addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(drawChart, 120); });
+
+refreshLive();
+refreshSeries();
+setInterval(refreshLive, 15_000);
+setInterval(refreshSeries, 60_000);
 </script>
 </body>
 </html>
