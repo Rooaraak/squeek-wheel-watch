@@ -57,7 +57,7 @@ async function getJSON(path) {
   if (!r.ok) throw new Error(`${path} answered ${r.status}`);
   return r.json();
 }
-const data = { days: new Map(), archive: {}, marks: [], marksLoaded: false, status: null, statusFailed: false, typical: null, loaded: false, error: null, issued: 9999 };
+const data = { days: new Map(), archive: {}, marks: [], marksLoaded: false, status: null, statusFailed: false, lastMoveAt: 0, lastRpm: 0, typical: null, loaded: false, error: null, issued: 9999 };
 
 async function loadArchive() {
   try { const r = await fetch('nights.json', { cache: 'no-cache', signal: AbortSignal.timeout(15000) }); if (r.ok) data.archive = (await r.json()).nights ?? {}; }
@@ -125,8 +125,11 @@ function notifyStart() {
 }
 const isStale = (st) => { const m = st?.measurement; return !!m && !(Date.now() - Date.parse(m.observedAt) <= Number(m.staleAfterSeconds) * 1000); };
 // Speed decides: the API's coreStatus flips between ACTIVE and IDLE every few seconds while he runs (seen 10-31).
-const isRunning = (st) => { const m = st?.measurement; return !!m && !isStale(st) && Number(m.speedMmPerSecond) > 0; };
-const liveRpm = () => (isRunning(data.status) ? Number(data.status.measurement.rpmMilli) / 1000 || 0 : 0);
+// A single zero reading mid-run is held for HOLD_MS so the card doesn't brake and spin up again for nothing.
+const HOLD_MS = 8000;
+const isMoving = (st) => { const m = st?.measurement; return !!m && !isStale(st) && Number(m.speedMmPerSecond) > 0; };
+const isRunning = (st) => !!st?.measurement && !isStale(st) && (isMoving(st) || Date.now() - data.lastMoveAt < HOLD_MS);
+const liveRpm = () => (!isRunning(data.status) ? 0 : isMoving(data.status) ? Number(data.status.measurement.rpmMilli) / 1000 || 0 : data.lastRpm);
 
 // ---------- a card on screen: layers, spin, wet paint ----------
 // The canvas is redrawn only when paint changes; the spin is a CSS rotation of the canvas inside its round wrapper
@@ -344,20 +347,20 @@ function renderLiveText(v) {
       : v.plan?.stats.turns ? `Last night: ${v.plan.title} · squeekwheel.xyz` : 'Squeek Spin Art · squeekwheel.xyz';
     const lastMode = v.mode === 'last';
     $('ovEyebrow').textContent = lastMode ? "Squeektoshi's last painting" : "Squeektoshi's painting tonight";
-    $('ovBig').textContent = lastMode ? v.plan.title : `${nf.format(turnsTonight)} turns`;
+    $('ovBig').textContent = lastMode ? v.plan.title : `${nf.format(Math.max(turnsTonight, ticker.shown))} turns`;
     $('ovSub').textContent = lastMode ? `${nf.format(v.plan.stats.turns)} turns · squeekwheel.xyz` : `${running ? 'painting now' : stale ? 'sensor offline' : 'resting'} · squeekwheel.xyz`;
+    startTicker(lastMode ? null : turnsTonight);
     return;
   }
   $('pillText').textContent = stateText;
   $('headline').textContent = running ? 'Squeektoshi is painting right now' : stale ? 'The wheel sensor is offline' : 'Squeektoshi paints every night';
   document.title = running ? '🐹🎨 Painting now · Squeek Spin Art' : 'Squeek Spin Art · Paintings by the hamster that mines Squeekchain';
   const wait = untilStart();
-  const [num, unit] = running ? [(Number(st.measurement.rpmMilli) / 1000).toFixed(0), 'rpm']
+  const [num, unit] = running ? [liveRpm().toFixed(0), 'rpm']
     : turnsTonight > 0 ? [nf.format(turnsTonight), 'turns tonight']
     : wait != null ? [wait, 'until he usually starts'] : ['–', 'rpm'];
   $('rpm').textContent = num; $('rpmUnit').textContent = unit;
-  $('tonightTurns').textContent = nf.format(turnsTonight);
-  $('tonightKm').textContent = km(turnsTonight * MM_PER_TURN);      // from the same turns, so the two never disagree mid-run
+  startTicker(turnsTonight);
   $('sensor').textContent = st ? `sensor read ${ago(st.measurement.observedAt)}` : data.statusFailed ? 'can\'t reach the Squeekchain API right now' : '';
   const cap = $('heroCaption');
   if (v.mode === 'last') {
@@ -369,6 +372,29 @@ function renderLiveText(v) {
       : turnsTonight > 0 ? `Tonight's card so far: ${nf.format(turnsTonight)} turns. It spins again as soon as he gets back on the wheel, and the night ends at 12:00 UTC.`
       : `Tonight's card is blank so far. ${startText}`;
   }
+}
+
+// Between sensor readings tonight's turn counters tick on at his current speed, like an odometer. The estimate never
+// runs more than 6 s ahead of the last reading and the numbers never count backwards.
+const ticker = { date: null, real: 0, at: 0, shown: 0, timer: 0 };
+function showTurns(n) {
+  ticker.shown = n;
+  if (OVERLAY) { if (live.mode === 'tonight') $('ovBig').textContent = `${nf.format(n)} turns`; return; }
+  $('tonightTurns').textContent = nf.format(n);
+  $('tonightKm').textContent = km(n * MM_PER_TURN);                  // from the same turns, so the two never disagree mid-run
+}
+function startTicker(real) {
+  clearInterval(ticker.timer); ticker.timer = 0;
+  if (real == null) return;
+  const { date } = now();
+  if (ticker.date !== date || real < ticker.shown - 300) ticker.shown = 0;   // a new night, or the counter restarted
+  Object.assign(ticker, { date, real, at: Date.now() });
+  if (!isRunning(data.status)) { showTurns(real); return; }         // at rest the counter shows exactly what the sensor read
+  showTurns(Math.max(ticker.shown, real));
+  ticker.timer = setInterval(() => {
+    const est = Math.floor(ticker.real + (liveRpm() / 60) * Math.min(6, (Date.now() - ticker.at) / 1000));
+    if (est > ticker.shown) showTurns(est);
+  }, 250);
 }
 
 function applySpin() {
@@ -386,6 +412,7 @@ async function pollStatus() {
       const st = await getJSON('/v1/status');
       if (!st?.measurement?.observedAt) throw new Error('status without a measurement');
       data.status = st; data.statusFailed = false;
+      if (isMoving(st)) { data.lastMoveAt = Date.now(); data.lastRpm = Number(st.measurement.rpmMilli) / 1000 || 0; }
       // He runs in bursts, so only a start after at least 20 quiet minutes counts as "he started".
       if (isRunning(st)) { if (data.restingSince && Date.now() - data.restingSince > 20 * 60e3) notifyStart(); data.restingSince = 0; lastRunAt = Date.now(); }
       else if (!data.restingSince) data.restingSince = Date.now();
@@ -393,7 +420,8 @@ async function pollStatus() {
     } catch (e) { data.statusFailed = true; console.warn('status', e.message); }
     try { refreshLive(); applySpin(); toy.onStatus(); } catch (e) { console.warn('render', e.message); }   // a stale reading shows as offline
   }
-  statusTimer = setTimeout(pollStatus, PREVIEW ? 30000 : isRunning(data.status) ? 5000 : 15000);
+  // Every 5 s while he runs and for 40 min after (he runs in bursts), so a restart shows within seconds.
+  statusTimer = setTimeout(pollStatus, PREVIEW ? 30000 : isRunning(data.status) || Date.now() - lastRunAt < 40 * 60e3 ? 5000 : 15000);
 }
 async function pollStats() {
   clearTimeout(statsTimer);
