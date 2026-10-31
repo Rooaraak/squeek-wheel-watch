@@ -1,0 +1,1375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Squeek Wheel Watch · Live telemetry from the Squeekchain hamster</title>
+<meta name="description" content="Live telemetry from the real hamster wheel that mines Squeekchain: speed, distance, records, blocks and SQK mined, a wallet checker and a stream overlay.">
+<link rel="canonical" href="https://www.squeekwheel.xyz/watch/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.squeekwheel.xyz/watch/">
+<meta property="og:title" content="Squeek Wheel Watch">
+<meta property="og:description" content="Live telemetry from the real hamster wheel that mines Squeekchain: speed, distance, records, blocks and SQK mined.">
+<meta property="og:image" content="https://www.squeekwheel.xyz/watch/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Squeek Wheel Watch">
+<meta name="twitter:description" content="Live telemetry from the real hamster wheel that mines Squeekchain.">
+<meta name="twitter:image" content="https://www.squeekwheel.xyz/watch/og.png">
+<meta name="theme-color" content="#0d0d11" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='26' fill='none' stroke='%23d95926' stroke-width='7'/%3E%3Cg stroke='%23d95926' stroke-width='3' stroke-linecap='round'%3E%3Cline x1='32' y1='10' x2='32' y2='54'/%3E%3Cline x1='10' y1='32' x2='54' y2='32'/%3E%3Cline x1='16.4' y1='16.4' x2='47.6' y2='47.6'/%3E%3Cline x1='47.6' y1='16.4' x2='16.4' y2='47.6'/%3E%3C/g%3E%3Ccircle cx='32' cy='32' r='5' fill='%23d95926'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --page: #0d0d11; --surface: #16161c; --surface-2: #1e1e26; --line: #2a2a33; --grid: #25252d;
+    --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #8f8e88;
+    --accent: #d95926; --accent-soft: rgba(217, 89, 38, .18); --accent-glow: rgba(217, 89, 38, .45); --link: #f29b6c;
+    --good: #0ca30c; --critical: #d03b3b; --idle: #8f8e88;
+    --shadow: 0 1px 0 rgba(255, 255, 255, .03) inset, 0 12px 32px rgba(0, 0, 0, .35);
+    --radius: 16px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:where(:not([data-theme="dark"])) {
+      color-scheme: light;
+      --page: #f6f5f2; --surface: #ffffff; --surface-2: #f3f2ee; --line: #e4e2dc; --grid: #ecebe6;
+      --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #74736c;
+      --accent: #eb6834; --accent-soft: rgba(235, 104, 52, .14); --accent-glow: rgba(235, 104, 52, .35); --link: #b4441a;
+      --shadow: 0 1px 2px rgba(20, 20, 10, .05), 0 10px 30px rgba(20, 20, 10, .06);
+    }
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page: #f6f5f2; --surface: #ffffff; --surface-2: #f3f2ee; --line: #e4e2dc; --grid: #ecebe6;
+    --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #74736c;
+    --accent: #eb6834; --accent-soft: rgba(235, 104, 52, .14); --accent-glow: rgba(235, 104, 52, .35); --link: #b4441a;
+    --shadow: 0 1px 2px rgba(20, 20, 10, .05), 0 10px 30px rgba(20, 20, 10, .06);
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font: 15px/1.55 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased;
+    background-image: radial-gradient(1200px 520px at 85% -120px, var(--accent-soft), transparent 70%);
+    background-repeat: no-repeat;
+  }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  button { font-family: inherit; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+
+  /* nav */
+  .nav { display: flex; align-items: center; gap: 16px; padding: 18px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); font-size: 16px; white-space: nowrap; }
+  .brand:hover { text-decoration: none; }
+  .brand svg { width: 26px; height: 26px; flex: none; }
+  .nav .spacer { flex: 1; }
+  .nav-links { display: flex; align-items: center; gap: 18px; font-size: 14px; }
+  .nav-links a { color: var(--ink-2); }
+  .icon-btn { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--ink-2); cursor: pointer; transition: background-color .2s, color .2s; }
+  .icon-btn:hover { background: var(--surface-2); color: var(--ink); }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    background: var(--surface); border: 1px solid var(--line); color: var(--ink); white-space: nowrap; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--idle); flex: none; }
+  .is-running .dot { background: var(--good); box-shadow: 0 0 0 0 rgba(12, 163, 12, .6); animation: pulse 1.8s infinite; }
+  .is-stale .dot { background: var(--critical); }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 8px rgba(12, 163, 12, 0); } 100% { box-shadow: 0 0 0 0 rgba(12, 163, 12, 0); } }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink);
+    font: 600 14px/1 Inter, system-ui, sans-serif; padding: 10px 14px; border-radius: 10px; cursor: pointer; transition: background-color .15s, border-color .15s, color .15s; }
+  .btn:hover { border-color: var(--ink-3); }
+  .btn svg { width: 16px; height: 16px; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn[aria-pressed="true"] { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+  .hint { color: var(--ink-3); font-size: 13px; }
+
+  /* hero */
+  .hero { display: grid; grid-template-columns: 1.25fr .75fr; gap: 24px; align-items: center; padding: 36px 40px; margin-top: 6px; overflow: hidden; }
+  .eyebrow { margin: 0 0 10px; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  h1 { margin: 0; font-size: clamp(30px, 4.2vw, 46px); line-height: 1.08; letter-spacing: -.025em; font-weight: 700; }
+  .lede { margin: 14px 0 26px; max-width: 54ch; color: var(--ink-2); font-size: 16px; }
+  .hero-figure { display: flex; align-items: baseline; gap: 10px; }
+  .hero-figure .num { font-size: clamp(52px, 7vw, 76px); font-weight: 600; letter-spacing: -.035em; line-height: 1; }
+  .hero-figure .unit { font-size: 20px; color: var(--ink-2); font-weight: 500; }
+  .hero-meta { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--ink-3); font-size: 14px; }
+  .hero-meta b { color: var(--ink-2); font-weight: 600; }
+  .hero-actions { margin-top: 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .hero-art { display: grid; place-items: center; }
+  .wheel-svg { width: min(100%, 300px); height: auto; overflow: visible; }
+  .wheel-rot { transform-box: view-box; transform-origin: 120px 112px; }
+  .is-running .wheel-rot { animation: spin var(--spin, 1.5s) linear infinite; }
+  .is-running .wheel-rim { filter: drop-shadow(0 0 10px var(--accent-glow)); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* stat tiles */
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 16px; }
+  .tile { padding: 20px 22px; min-width: 0; }
+  .tile .label { color: var(--ink-2); font-size: 14px; font-weight: 500; }
+  .tile .value { margin-top: 6px; font-size: 30px; font-weight: 600; letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile .value small { font-size: 16px; color: var(--ink-2); font-weight: 500; letter-spacing: 0; margin-left: 4px; }
+  .tile .sub { margin-top: 6px; color: var(--ink-3); font-size: 13px; }
+  .delta { color: var(--ink-2); font-weight: 600; }
+  .meter { height: 6px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; margin-top: 12px; }
+  .meter i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--accent); transition: width .8s ease; }
+
+  /* section heads + filters */
+  .section-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; margin: 44px 0 14px; scroll-margin-top: 16px; }
+  .section-head h2 { margin: 0; font-size: 20px; letter-spacing: -.01em; }
+  .section-head p { margin: 4px 0 0; color: var(--ink-3); font-size: 14px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 10px; }
+  .seg { display: inline-flex; padding: 3px; border-radius: 11px; background: var(--surface); border: 1px solid var(--line); }
+  .seg button { border: 0; background: transparent; color: var(--ink-2); font: 600 13px/1 Inter, system-ui, sans-serif; padding: 8px 12px; border-radius: 8px;
+    cursor: pointer; transition: background-color .15s, color .15s; }
+  .seg button:hover { color: var(--ink); }
+  .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); box-shadow: 0 0 0 1px var(--line) inset; }
+
+  /* charts */
+  .chart-card { padding: 22px 22px 16px; }
+  .chart-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: baseline; margin-bottom: 8px; }
+  .chart-title { font-weight: 600; }
+  .chart-total { color: var(--ink-3); font-size: 14px; }
+  .chart-total b { color: var(--ink); font-weight: 600; }
+  .link-btn { border: 0; background: none; color: var(--link); font: 500 13px Inter, system-ui, sans-serif; cursor: pointer; padding: 0; }
+  .chart { position: relative; height: 300px; transition: opacity .25s; }
+  .chart.short { height: 170px; }
+  .chart.loading { opacity: .45; }
+  .chart svg { display: block; width: 100%; height: 100%; }
+  .chart .tick { fill: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .chart .gridline { stroke: var(--grid); stroke-width: 1; }
+  .chart .baseline { stroke: var(--line); stroke-width: 1; }
+  .chart .bar { fill: var(--accent); transition: opacity .15s; }
+  .chart .hit { fill: transparent; outline: none; }
+  .chart .hit:hover + .bar, .chart .hit:focus + .bar { opacity: .75; }
+  .chart .peak { fill: var(--ink-2); font-size: 12px; font-weight: 600; }
+  .chart .empty { fill: var(--ink-3); font-size: 13px; }
+  .tooltip { position: absolute; pointer-events: none; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; z-index: 2;
+    padding: 8px 12px; font-size: 13px; box-shadow: var(--shadow); white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); opacity: 0; transition: opacity .12s; }
+  .tooltip.show { opacity: 1; }
+  .tooltip .tv { font-weight: 700; font-size: 15px; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+  .tooltip .tv::before { content: ""; width: 12px; height: 3px; border-radius: 2px; background: var(--accent); }
+  .tooltip .tl { color: var(--ink-3); }
+  .data-table-wrap { overflow-x: auto; margin-top: 10px; }
+
+  /* live run */
+  .run-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 8px 0 14px; }
+  .run-stats .label { color: var(--ink-2); font-size: 13px; font-weight: 500; }
+  .run-stats .v { margin-top: 2px; font-size: 24px; font-weight: 600; letter-spacing: -.02em; white-space: nowrap; }
+  .run-stats .v small { font-size: 13px; color: var(--ink-2); font-weight: 500; margin-left: 3px; }
+  .chart .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .chart .area { fill: var(--accent); opacity: .1; }
+  .chart .enddot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+  .chart .cross { stroke: var(--ink-3); stroke-width: 1; }
+  .chart .hover-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+
+  /* panels */
+  .grid-2 { display: grid; grid-template-columns: .9fr 1.1fr; gap: 16px; }
+  .grid-even { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .panel { padding: 22px; min-width: 0; }
+  .panel h3 { margin: 0 0 14px; font-size: 16px; }
+  .panel h3 small { color: var(--ink-3); font-weight: 500; font-size: 13px; margin-left: 6px; }
+  .kv { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--grid); font-size: 14px; }
+  .kv:last-of-type { border-bottom: 0; }
+  .kv span:first-child { color: var(--ink-2); }
+  .kv span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+  .milestone { margin-top: 16px; }
+  .milestone .row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+  .milestone .row span:first-child { font-weight: 600; }
+  .milestone .row span:last-child { color: var(--ink-3); font-variant-numeric: tabular-nums; text-align: right; }
+  .milestone .eta { margin-top: 6px; color: var(--ink-3); font-size: 13px; }
+  .reward-now { display: flex; align-items: baseline; gap: 8px; margin: 18px 0 2px; }
+  .reward-now b { font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th { text-align: left; color: var(--ink-3); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; padding: 0 10px 10px; white-space: nowrap; }
+  td { padding: 11px 10px; border-top: 1px solid var(--grid); white-space: nowrap; }
+  th:first-child, td:first-child { padding-left: 0; }
+  td.num, th.num { text-align: right; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 13px; }
+  .table-scroll { overflow-x: auto; }
+
+  /* records */
+  .records { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .record { padding: 16px 18px; min-width: 0; }
+  .record .label { color: var(--ink-2); font-size: 13px; font-weight: 500; }
+  .record .value { margin-top: 4px; font-size: 22px; font-weight: 600; letter-spacing: -.02em; white-space: nowrap; }
+  .record .value small { font-size: 13px; color: var(--ink-2); font-weight: 500; margin-left: 3px; }
+  .record .when { margin-top: 2px; color: var(--ink-3); font-size: 12px; }
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list li { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--grid); font-size: 14px; }
+  .list li:first-child { border-top: 0; padding-top: 0; }
+  .list .ico { flex: none; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--accent-soft); color: var(--link); }
+  .list .txt { flex: 1; min-width: 0; color: var(--ink); }
+  .list .txt small { display: block; color: var(--ink-3); font-size: 12px; margin-top: 1px; }
+  .addr { border: 0; background: none; padding: 0; color: var(--link); font: 500 13px "JetBrains Mono", ui-monospace, monospace; cursor: pointer; }
+  .addr:hover { text-decoration: underline; }
+  .empty-note { color: var(--ink-3); font-size: 14px; }
+
+  /* wallet */
+  .wallet-form { display: flex; flex-wrap: wrap; gap: 10px; }
+  .wallet-form input { flex: 1; min-width: 240px; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink);
+    font: 500 14px "JetBrains Mono", ui-monospace, monospace; outline: none; transition: border-color .15s; }
+  .wallet-form input:focus { border-color: var(--accent); }
+  .wallet-result { margin-top: 18px; }
+  .wallet-tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .nfts { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 12px; margin-top: 12px; }
+  .nft { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface-2); }
+  .nft img, .nft .ph { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: var(--surface-2); image-rendering: pixelated; }
+  .nft .meta { padding: 7px 10px 9px; font-size: 12px; display: flex; flex-direction: column; gap: 1px; color: var(--ink-3); }
+  .nft .meta b { color: var(--ink); font-weight: 600; }
+
+  /* overlay promo */
+  .overlay-promo { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: center; padding: 26px; }
+  .copy-row { display: flex; gap: 8px; margin: 14px 0 10px; }
+  .copy-row input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: 500 13px "JetBrains Mono", ui-monospace, monospace; }
+  .overlay-preview { border-radius: 14px; border: 1px dashed var(--line); padding: 14px; background:
+    repeating-conic-gradient(var(--surface-2) 0 25%, var(--surface) 0 50%) 0 0 / 20px 20px; }
+  .overlay-preview iframe { display: block; width: 100%; height: 150px; border: 0; background: transparent; }
+
+  /* how it works */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .step { padding: 22px; }
+  .step .n { font: 500 13px "JetBrains Mono", ui-monospace, monospace; color: var(--link); }
+  .step h4 { margin: 8px 0 6px; font-size: 16px; }
+  .step p { margin: 0; color: var(--ink-2); font-size: 14px; }
+
+  .banner { display: none; margin-top: 16px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 14px; }
+  .banner.show { display: flex; gap: 10px; align-items: center; }
+  .banner .dot { background: var(--critical); }
+
+  footer { margin: 48px 0 32px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; color: var(--ink-3); font-size: 13px; }
+
+  /* overlay mode: ?overlay renders only the compact widget on a transparent page */
+  #overlayRoot { display: none; }
+  html.overlay-mode body { background: transparent; background-image: none; }
+  html.overlay-mode .wrap { display: none; }
+  html.overlay-mode #overlayRoot { display: block; padding: 8px; }
+  .ov { display: flex; align-items: center; gap: clamp(10px, 3vw, 18px); padding: clamp(10px, 3vw, 16px) clamp(12px, 4vw, 22px); border-radius: 18px;
+    background: rgba(22, 22, 28, .86); color: #f0efec; border: 1px solid rgba(255, 255, 255, .08); backdrop-filter: blur(8px); max-width: 520px; }
+  :root[data-theme="light"] .ov { background: rgba(255, 255, 255, .9); color: #0b0b0b; border-color: rgba(0, 0, 0, .08); }
+  .ov svg { width: clamp(40px, 12vw, 64px); height: auto; flex: none; overflow: visible; }
+  .ov .ov-state { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; opacity: .85; }
+  .ov .ov-speed { font-size: clamp(26px, 8vw, 40px); font-weight: 700; letter-spacing: -.03em; line-height: 1.05; }
+  .ov .ov-speed small { font-size: 16px; font-weight: 500; opacity: .75; margin-left: 4px; }
+  .ov .ov-sub { font-size: clamp(11px, 2.6vw, 13px); opacity: .75; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  @media (max-width: 980px) {
+    .records { grid-template-columns: repeat(3, 1fr); }
+    .wallet-tiles { grid-template-columns: repeat(3, 1fr); }
+    .steps { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; padding: 28px 22px; }
+    .hero-art { order: -1; }
+    .wheel-svg { width: 190px; }
+    .tiles { grid-template-columns: repeat(2, 1fr); }
+    .grid-2, .grid-even, .overlay-promo { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 520px) {
+    .tiles, .steps { grid-template-columns: 1fr; }
+    .records, .wallet-tiles, .run-stats { grid-template-columns: repeat(2, 1fr); }
+    .nav-links .hide-sm, .col-round { display: none; }
+    .chart { height: 240px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .is-running .wheel-rot, .is-running .dot { animation: none; }
+    .meter i { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="nav">
+    <a class="brand" href="./" aria-label="Squeek Wheel Watch home">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="25" fill="none" stroke="var(--accent)" stroke-width="7"/><g stroke="var(--accent)" stroke-width="3" stroke-linecap="round"><line x1="32" y1="12" x2="32" y2="52"/><line x1="12" y1="32" x2="52" y2="32"/><line x1="17.9" y1="17.9" x2="46.1" y2="46.1"/><line x1="46.1" y1="17.9" x2="17.9" y2="46.1"/></g><circle cx="32" cy="32" r="5" fill="var(--accent)"/></svg>
+      Squeek Wheel Watch
+    </a>
+    <span class="pill" id="pill"><span class="dot"></span><span id="pillText">Connecting…</span></span>
+    <span class="spacer"></span>
+    <nav class="nav-links">
+      <a href="../">Spin Art</a>
+      <a class="hide-sm" href="#records">Records</a>
+      <a class="hide-sm" href="#wallet">Wallet</a>
+      <a class="hide-sm" href="#overlay">Overlay</a>
+      <button class="icon-btn" id="theme" type="button" aria-label="Switch light or dark theme">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero card" id="hero" aria-labelledby="headline">
+      <div>
+        <p class="eyebrow">Live from the wheel</p>
+        <h1 id="headline">Checking on the hamster…</h1>
+        <p class="lede">Squeekchain is mined by a real hamster. A sensor on its wheel turns every run into proof-of-work blocks on the Sepolia test network, and this page follows it live.</p>
+        <div class="hero-figure" aria-live="polite"><span class="num" id="speed">–</span><span class="unit">km/h</span></div>
+        <div class="hero-meta">
+          <span><b id="rpm">–</b> rpm</span>
+          <span><b id="mps">–</b> m/s</span>
+          <span id="sensor">Sensor –</span>
+          <span id="signed"></span>
+        </div>
+        <div class="hero-actions">
+          <button class="btn primary" type="button" id="notifyBtn" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <span id="notifyText">Notify me when it runs</span>
+          </button>
+          <button class="btn" type="button" id="soundBtn" aria-pressed="false" hidden>Squeak sound: off</button>
+          <button class="btn" type="button" id="shareBtn">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.8 3h3.1l-6.8 7.8 8 10.2h-6.3l-4.9-6.4L5.3 21H2.2l7.3-8.3L1.8 3h6.4l4.4 5.9zm-1.1 16.2h1.7L7.4 4.7H5.6z"/></svg>
+            Share on X
+          </button>
+          <span class="hint" id="notifyHint"></span>
+        </div>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <svg class="wheel-svg" viewBox="0 0 240 240">
+          <g stroke="var(--line)" stroke-width="8" stroke-linecap="round"><line x1="120" y1="112" x2="76" y2="222"/><line x1="120" y1="112" x2="164" y2="222"/></g>
+          <line x1="56" y1="224" x2="184" y2="224" stroke="var(--line)" stroke-width="8" stroke-linecap="round"/>
+          <g class="wheel-rot" id="wheel">
+            <circle class="wheel-rim" cx="120" cy="112" r="96" fill="none" stroke="var(--accent)" stroke-width="10"/>
+            <circle cx="120" cy="112" r="84" fill="none" stroke="var(--accent)" stroke-opacity=".35" stroke-width="2"/>
+            <g class="rungs" stroke="var(--surface)" stroke-width="3" stroke-linecap="round"></g>
+            <g class="spokes" stroke="var(--ink-3)" stroke-opacity=".55" stroke-width="3" stroke-linecap="round"></g>
+            <circle cx="120" cy="112" r="15" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="4"/>
+            <circle cx="120" cy="112" r="4" fill="var(--accent)"/>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <div class="banner" id="banner" role="status"><span class="dot"></span><span id="bannerText"></span></div>
+
+    <section class="tiles" aria-label="Key numbers">
+      <div class="card tile">
+        <div class="label">Distance run</div>
+        <div class="value" id="distance">–</div>
+        <div class="sub" id="today">–</div>
+      </div>
+      <div class="card tile">
+        <div class="label">Blocks mined</div>
+        <div class="value" id="height">–</div>
+        <div class="meter" title="Progress into the next block"><i id="blockMeter"></i></div>
+        <div class="sub"><span id="blockProgress">–</span> · <span class="delta" id="blocksDelta">–</span></div>
+      </div>
+      <div class="card tile">
+        <div class="label">SQK mined</div>
+        <div class="value" id="minted">–</div>
+        <div class="meter" title="Share of the supply cap mined"><i id="capMeter"></i></div>
+        <div class="sub"><span id="capShare">–</span> · <span class="delta" id="sqkDelta">–</span></div>
+      </div>
+      <div class="card tile">
+        <div class="label">Current round</div>
+        <div class="value" id="round">–</div>
+        <div class="sub" id="settled">–</div>
+      </div>
+    </section>
+
+    <section class="card chart-card" id="run" style="margin-top:16px" aria-labelledby="runTitle">
+      <div class="chart-top">
+        <div><span class="chart-title" id="runTitle">Live run</span></div>
+        <div class="chart-total" id="runSince"></div>
+      </div>
+      <div class="run-stats">
+        <div><div class="label" id="runL1">Time running</div><div class="v" id="runV1">–</div></div>
+        <div><div class="label" id="runL2">Distance</div><div class="v" id="runV2">–</div></div>
+        <div><div class="label" id="runL3">Top speed</div><div class="v" id="runV3">–</div></div>
+        <div><div class="label" id="runL4">Average speed</div><div class="v" id="runV4">–</div></div>
+      </div>
+      <div class="chart short" id="runChart"></div>
+      <div class="hint" id="runNote"></div>
+    </section>
+
+    <div class="section-head">
+      <div>
+        <h2>Mining activity</h2>
+        <p>Settled on Sepolia by Squeekchain's oracle.</p>
+      </div>
+      <div class="filters" aria-label="Chart filters">
+        <div class="seg" role="group" aria-label="Time range" id="rangeSeg">
+          <button type="button" data-range="24h" aria-pressed="true">24 hours</button>
+          <button type="button" data-range="7d" aria-pressed="false">7 days</button>
+          <button type="button" data-range="30d" aria-pressed="false">30 days</button>
+        </div>
+        <div class="seg" role="group" aria-label="Measure" id="metricSeg">
+          <button type="button" data-metric="blocks" aria-pressed="true">Blocks</button>
+          <button type="button" data-metric="sqk" aria-pressed="false">SQK minted</button>
+          <button type="button" data-metric="work" aria-pressed="false">Work</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="card chart-card" aria-labelledby="chartTitle">
+      <div class="chart-top">
+        <div><span class="chart-title" id="chartTitle">Blocks completed per hour</span></div>
+        <div class="chart-total" id="chartTotal"></div>
+      </div>
+      <div class="chart" id="chart"></div>
+      <button class="link-btn" type="button" id="tableToggle" aria-expanded="false" aria-controls="dataTable">Show as table</button>
+      <div class="data-table-wrap" id="dataTable" hidden>
+        <table><thead><tr><th>Period</th><th class="num" id="tableMetric">Blocks</th></tr></thead><tbody id="tableBody"></tbody></table>
+      </div>
+    </section>
+
+    <div class="section-head" id="records">
+      <div>
+        <h2>Hamster records</h2>
+        <p>Personal bests measured by the wheel sensor and published by Squeekchain. Squeekchain counts each day from 12:00 to 12:00 UTC, so a night's run stays in one day.</p>
+      </div>
+    </div>
+    <section class="records" id="recordTiles" aria-label="Records"></section>
+
+    <section class="card chart-card" style="margin-top:16px" aria-labelledby="dayTitle">
+      <div class="chart-top">
+        <div><span class="chart-title" id="dayTitle">When it usually runs</span></div>
+        <div class="chart-total" id="dayPeak"></div>
+      </div>
+      <div class="chart short" id="dayChart"></div>
+      <div class="hint" id="dayNote"></div>
+    </section>
+
+    <section class="grid-even" style="margin-top:16px">
+      <div class="card panel" aria-labelledby="msTitle">
+        <h3 id="msTitle">Milestones</h3>
+        <ul class="list" id="milestones"><li class="empty-note">Loading…</li></ul>
+      </div>
+      <div class="card panel" aria-labelledby="feedTitle">
+        <h3 id="feedTitle">Live activity <small>staking, claims and settled blocks</small></h3>
+        <ul class="list" id="feed"><li class="empty-note">Loading…</li></ul>
+      </div>
+    </section>
+
+    <div class="section-head"><div><h2>Economy</h2><p>Supply, rewards and the issuance schedule.</p></div></div>
+    <section class="grid-2">
+      <div class="card panel" aria-labelledby="ecoTitle">
+        <h3 id="ecoTitle">SQK issuance</h3>
+        <div class="kv"><span>Squeek NFTs live</span><span id="nfts">–</span></div>
+        <div class="kv"><span>SQK staked</span><span id="staked">–</span></div>
+        <div class="kv"><span>Staking rewards paid</span><span id="rewards">–</span></div>
+        <div class="kv"><span>Funded to the gacha</span><span id="gacha">–</span></div>
+        <div class="kv"><span>Funded to staking</span><span id="stakeFunded">–</span></div>
+        <div class="kv"><span>Supply cap</span><span id="cap">–</span></div>
+        <div class="reward-now"><b id="perBlock">–</b><span class="hint">SQK per block now</span></div>
+        <div class="hint" id="perBlockSplit">–</div>
+        <div class="milestone">
+          <div class="row"><span>Launch bonus period</span><span id="bonusText">–</span></div>
+          <div class="meter"><i id="bonusMeter"></i></div>
+          <div class="eta" id="bonusEta"></div>
+        </div>
+        <div class="milestone">
+          <div class="row"><span>First halving</span><span id="halvingText">–</span></div>
+          <div class="meter"><i id="halvingMeter"></i></div>
+          <div class="eta" id="halvingEta"></div>
+        </div>
+      </div>
+      <div class="card panel" aria-labelledby="setTitle">
+        <h3 id="setTitle">Latest settlements with blocks</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Settled</th><th class="num col-round">Round</th><th class="num">Blocks</th><th class="num">SQK</th><th>Transaction</th></tr></thead>
+            <tbody id="recent"><tr><td colspan="5">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-head" id="wallet"><div><h2>Check a wallet</h2><p>See any wallet's Squeeks, staking power and SQK rewards.</p></div></div>
+    <section class="card panel" aria-label="Wallet checker">
+      <form class="wallet-form" id="walletForm" autocomplete="off">
+        <label class="sr-only" for="walletInput">Wallet address</label>
+        <input id="walletInput" placeholder="0x… wallet address" spellcheck="false" inputmode="text">
+        <button class="btn primary" type="submit">Check wallet</button>
+      </form>
+      <p class="hint" style="margin:10px 0 0">Read-only lookup of public Sepolia data. No wallet connection, nothing to sign.</p>
+      <div class="wallet-result" id="walletResult" hidden></div>
+    </section>
+
+    <div class="section-head" id="overlay"><div><h2>Stream overlay</h2><p>Put the hamster's live speed on your own stream.</p></div></div>
+    <section class="card overlay-promo">
+      <div>
+        <p style="margin:0;color:var(--ink-2)">A see-through live box with the wheel's status, speed and today's distance. Add it to OBS or Streamlabs as a <b>Browser source</b> (about 540 × 140).</p>
+        <div class="copy-row">
+          <input id="overlayUrl" readonly value="https://www.squeekwheel.xyz/watch/?overlay" aria-label="Overlay link">
+          <button class="btn" type="button" id="copyOverlay">Copy</button>
+        </div>
+        <p class="hint" style="margin:0">Add <span class="mono">&amp;theme=light</span> for a light box.</p>
+      </div>
+      <div class="overlay-preview"><iframe id="overlayFrame" title="Overlay preview" loading="lazy"></iframe></div>
+    </section>
+
+    <div class="section-head"><div><h2>How the wheel mines</h2></div></div>
+    <section class="steps">
+      <div class="card step"><div class="n">01</div><h4>The hamster runs</h4><p>A Hall-effect sensor on an RP2040 board counts every turn of the wheel (about 88 cm of running each) and reports speed, rpm and distance.</p></div>
+      <div class="card step"><div class="n">02</div><h4>Signed at the source</h4><p>Each reading is signed on the device by a secure chip (Trust M, ECDSA P-256) before the oracle accepts it.</p></div>
+      <div class="card step"><div class="n">03</div><h4>Runs become blocks</h4><p>Every 10 minutes the oracle closes a round of the wheel's work and settles it on Sepolia as completed blocks.</p></div>
+      <div class="card step"><div class="n">04</div><h4>Blocks mint SQK</h4><p>Each block issues SQK on a halving schedule, plus a launch bonus for the first 97,020 blocks, toward a 2.1 billion cap.</p></div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Live data from the public Squeekchain API · refreshed every 15 seconds · Sepolia test network, test SQK.</span>
+    <span>Community project, not affiliated with the Squeekchain team · <a href="https://github.com/Rooaraak/squeek-wheel-watch" rel="noopener">Source</a></span>
+  </footer>
+</div>
+
+<div id="overlayRoot" aria-live="polite">
+  <div class="ov" id="ov">
+    <svg viewBox="0 0 240 240" aria-hidden="true">
+      <g class="wheel-rot" id="ovWheel">
+        <circle class="wheel-rim" cx="120" cy="112" r="96" fill="none" stroke="#d95926" stroke-width="14"/>
+        <g class="spokes" stroke="currentColor" stroke-opacity=".45" stroke-width="6" stroke-linecap="round"></g>
+        <circle cx="120" cy="112" r="16" fill="#d95926"/>
+      </g>
+    </svg>
+    <div>
+      <div class="ov-state"><span class="dot"></span><span id="ovState">Connecting…</span></div>
+      <div class="ov-speed"><span id="ovSpeed">–</span><small>km/h</small></div>
+      <div class="ov-sub" id="ovSub">Squeekchain hamster</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://api.squeekchain.com/v1';
+const UNITS_PER_BLOCK = 1_000_000_000n;
+const WEI = 10n ** 18n;
+const OVERLAY = new URLSearchParams(location.search).has('overlay');
+const $ = (id) => document.getElementById(id);
+const nf = new Intl.NumberFormat('en-US');
+const nf2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const compact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 });
+const view = { range: '24h', metric: 'blocks' };
+const data = { status: null, eco: null, stats: null, series: null, day: null };
+const METRICS = {
+  blocks: { label: 'Blocks completed', unit: 'blocks', key: 'completedBlockCount' },
+  sqk: { label: 'SQK minted', unit: 'SQK', key: 'sqkMintedBaseUnits', sqk: true },
+  work: { label: 'Work added', unit: 'work units', key: 'workAdded' },
+};
+const PER = { '24h': 'per hour', '7d': 'per 6 hours', '30d': 'per day' };
+
+// ---------- formatting (SQK arrives as 18-decimal base-unit strings; whole SQK fits a Number, the cap is 2.1 billion)
+const sqkNum = (base) => Number(BigInt(base) / WEI);
+const sqkText = (base) => compact.format(sqkNum(base));
+const sqk2 = (base) => {
+  const v = BigInt(base), cents = (v * 100n + WEI / 2n) / WEI;
+  return `${nf.format(cents / 100n)}.${String(cents % 100n).padStart(2, '0')}`;
+};
+const pctOf = (part, whole) => Number((BigInt(part) * 1_000_000n) / BigInt(whole)) / 10_000;
+const km = (mm) => (Number(mm) / 1e6).toFixed(2);
+const kmh = (mmps) => (Number(mmps) * 0.0036).toFixed(2);
+const short = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+const ago = (iso) => {
+  const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
+  if (s < 60) return `${s} s ago`;
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 172800) return `${Math.round(s / 3600)} h ago`;
+  return `${Math.round(s / 86400)} days ago`;
+};
+const fmtTime = (iso, withDay) => new Date(iso).toLocaleString([], withDay
+  ? { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit' });
+const fmtDate = (iso) => new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' });
+const fmtUtcDay = (ymd) => new Date(`${ymd}T12:00:00Z`).toLocaleDateString([], { month: 'short', day: 'numeric', timeZone: 'UTC' });
+const clockOfUtcMinute = (min) => {
+  const d = new Date(); d.setUTCHours(0, min, 0, 0);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+// Stats "days" run from 12:00 to 12:00 UTC (a night stays in one day), labelled by the date they start on.
+const dayStart = (ymd) => Date.parse(`${ymd}T12:00:00Z`);
+const slotTime = (ymd, minuteUtc) => dayStart(ymd) + (((minuteUtc - 720) % 1440 + 1440) % 1440) * 60000;
+const nightOf = (ymd) => {
+  const a = new Date(dayStart(ymd)), b = new Date(dayStart(ymd) + 86400000);
+  const m = (d) => d.toLocaleDateString([], { month: 'short', timeZone: 'UTC' }), dd = (d) => d.toLocaleDateString([], { day: 'numeric', timeZone: 'UTC' });
+  return m(a) === m(b) ? `${m(a)} ${dd(a)}–${dd(b)}` : `${m(a)} ${dd(a)} – ${m(b)} ${dd(b)}`;
+};
+const sinceLabel = (ymd) => {
+  const t = new Date(dayStart(ymd)), today = new Date().toDateString() === t.toDateString();
+  return `since ${today ? '' : 'yesterday '}${t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+};
+const node = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+const ICONS = {
+  flag: 'M5 21V4h11l-2 4 2 4H5',
+  calendar: 'M4 6h16v14H4zM4 10h16M9 3v5M15 3v5',
+  bolt: 'M13 2 4 14h7l-1 8 9-12h-7z',
+  wind: 'M3 8h10a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h8',
+  flame: 'M12 3c1 4 6 5 6 10a6 6 0 0 1-12 0c0-3 2-4 3-6 0 2 1 3 2 3 0-3-1-4 1-7z',
+  stakeIn: 'M12 3v12M7 10l5 5 5-5M4 20h16',
+  stakeOut: 'M12 20V8M7 13l5-5 5 5M4 4h16',
+  merge: 'M7 4v5a5 5 0 0 0 5 5h5M14 11l3 3-3 3M7 20v-4',
+  gift: 'M4 9h16v4H4zM12 9v11M6 13v7h12v-7M12 9c-1-3-5-4-5-1s5 1 5 1 5 2 5-1-4-2-5 1',
+  coins: 'M6 7c0 1.7 2.7 3 6 3s6-1.3 6-3-2.7-3-6-3-6 1.3-6 3zM6 12c0 1.7 2.7 3 6 3s6-1.3 6-3M6 7v10c0 1.7 2.7 3 6 3s6-1.3 6-3V7',
+  repeat: 'M17 3l4 4-4 4M3 11V9a2 2 0 0 1 2-2h16M7 21l-4-4 4-4M21 13v2a2 2 0 0 1-2 2H3',
+  up: 'M3 17l6-6 4 4 8-8M15 7h6v6',
+  down: 'M3 7l6 6 4-4 8 8M15 17h6v-6',
+  block: 'M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 21v-9M20 7.5l-8 4.5-8-4.5',
+};
+function icon(name) {
+  const ns = 'http://www.w3.org/2000/svg', svg = document.createElementNS(ns, 'svg'), path = document.createElementNS(ns, 'path');
+  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', width: 16, height: 16, fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' })) svg.setAttribute(k, v);
+  path.setAttribute('d', ICONS[name]);
+  svg.append(path);
+  return node('span', { className: 'ico' }, svg);
+}
+
+// The API can briefly answer {status: "unavailable"} while it re-indexes; keep the last good render instead.
+const ready = (j, ...keys) => !!j && j.status !== 'unavailable' && keys.every((k) => j[k] != null);
+function safely(fn, arg) {
+  try { fn(arg); return true; } catch (e) { console.warn(`render skipped: ${e.message}`); return false; }
+}
+
+async function get(path) {
+  const r = await fetch(`${API}${path}`, { cache: 'no-store', signal: AbortSignal.timeout(12000) });
+  if (!r.ok) throw Object.assign(new Error(`HTTP ${r.status}`), { status: r.status });
+  return r.json();
+}
+
+// ---------- wheel art: rungs on the rim and spokes to the hub (hero and overlay share the drawing)
+function drawWheel(svg, rungs) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const line = (g, a, r1, r2) => {
+    const l = document.createElementNS(ns, 'line'), c = Math.cos(a), s = Math.sin(a);
+    l.setAttribute('x1', 120 + r1 * c); l.setAttribute('y1', 112 + r1 * s);
+    l.setAttribute('x2', 120 + r2 * c); l.setAttribute('y2', 112 + r2 * s);
+    g.append(l);
+  };
+  const rg = svg.querySelector('.rungs'), sg = svg.querySelector('.spokes');
+  if (rg && rungs) for (let i = 0; i < 28; i++) line(rg, (i / 28) * 2 * Math.PI, 92, 100);
+  for (let i = 0; i < 8; i++) line(sg, (i / 8) * 2 * Math.PI + Math.PI / 8, 18, 82);
+}
+drawWheel(document.querySelector('.wheel-svg'), true);
+drawWheel(document.querySelector('.ov svg'), false);
+
+// ---------- bar chart (single series): rounded data-end, square baseline, hairline grid, per-bar tooltip
+function niceScale(v) {
+  if (v <= 0) return { top: 4, step: 1 };
+  const raw = v / 4, p = 10 ** Math.floor(Math.log10(raw)), n = raw / p;
+  const step = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+  return { top: Math.ceil(v / step) * step, step };
+}
+
+function drawBars(box, items, { unit, xLabel, every, peakLabel = true, emptyText = 'No activity in this period yet' }) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, text) => {
+    const e = document.createElementNS(ns, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+  const W = box.clientWidth, H = box.clientHeight;
+  if (!W || !H) return;
+  const pad = { l: 46, r: 8, t: 22, b: 30 }, pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  const vals = items.map((it) => it.value), maxV = Math.max(0, ...vals);
+  const { top: max, step } = niceScale(maxV), ticks = Math.round(max / step);
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': box.dataset.label || 'Bar chart' });
+  for (let i = 0; i <= ticks; i++) {
+    const y = pad.t + ph - (ph * i) / ticks;
+    svg.append(el('line', { class: i ? 'gridline' : 'baseline', x1: pad.l, x2: W - pad.r, y1: y, y2: y }));
+    svg.append(el('text', { class: 'tick', x: pad.l - 10, y: y + 4, 'text-anchor': 'end' }, compact.format(step * i)));
+  }
+  let tip = box.querySelector('.tooltip');
+  if (!tip) {
+    tip = node('div', { className: 'tooltip' }, node('div', { className: 'tv' }), node('div', { className: 'tl' }));
+    box.append(tip);
+  }
+  const band = pw / items.length, bw = Math.max(2, Math.min(24, band - 2)), peak = vals.indexOf(maxV);
+  items.forEach((it, i) => {
+    const v = it.value, x = pad.l + i * band, bx = x + (band - bw) / 2;
+    const h = v > 0 ? Math.max(2, (v / max) * ph) : 0, y = pad.t + ph - h, r = Math.min(4, bw / 2, h);
+    const text = `${nf.format(v)} ${unit}`;
+    const hit = el('rect', { class: 'hit', x, y: pad.t, width: band, height: ph, tabindex: 0, 'aria-label': `${it.label}: ${text}` });
+    const show = () => {
+      tip.firstChild.textContent = text;
+      tip.lastChild.textContent = it.label;
+      tip.style.left = `${Math.min(Math.max(x + band / 2, 90), W - 90)}px`;
+      tip.style.top = `${Math.min(y, pad.t + ph - 4)}px`;
+      tip.classList.add('show');
+    };
+    hit.addEventListener('pointerenter', show);
+    hit.addEventListener('focus', show);
+    hit.addEventListener('pointerleave', () => tip.classList.remove('show'));
+    hit.addEventListener('blur', () => tip.classList.remove('show'));
+    svg.append(hit);
+    svg.append(h > 0
+      ? el('path', { class: 'bar', d: `M${bx},${pad.t + ph}V${y + r}Q${bx},${y} ${bx + r},${y}H${bx + bw - r}Q${bx + bw},${y} ${bx + bw},${y + r}V${pad.t + ph}Z` })
+      : el('g', {}));
+    if (peakLabel && i === peak && v > 0) {
+      svg.append(el('text', { class: 'peak', x: bx + bw / 2, y: y - 7, 'text-anchor': i === 0 ? 'start' : i === items.length - 1 ? 'end' : 'middle' }, compact.format(v)));
+    }
+  });
+  if (maxV === 0) svg.append(el('text', { class: 'empty', x: pad.l + pw / 2, y: pad.t + ph / 2, 'text-anchor': 'middle' }, emptyText));
+  const need = Math.max(1, Math.ceil(64 / band));
+  const stepEvery = every ? Math.ceil(need / every) * every : Math.ceil(items.length / Math.max(2, Math.floor(pw / 90)));
+  items.forEach((it, i) => {
+    if (i % stepEvery) return;
+    svg.append(el('text', { class: 'tick', x: pad.l + i * band + band / 2, y: H - 8, 'text-anchor': 'middle' }, xLabel(it, i)));
+  });
+  box.querySelector('svg')?.remove();
+  box.prepend(svg);
+}
+
+// ---------- live run tracker: samples the sensor while the wheel turns (it publishes a reading every 10 s)
+const run = { active: false, startAt: null, trackFrom: null, startDistance: 0, samples: [], lastObservedAt: null, finished: null };
+
+function runSummary() {
+  const s = run.samples;
+  if (!s.length) return null;
+  const first = Date.parse(run.trackFrom), last = s.at(-1).t, seconds = Math.max(0, (last - first) / 1000);
+  let distance = s.at(-1).d - run.startDistance;
+  if (!(distance >= 0)) { // counter reset mid-run: integrate speed over time instead
+    distance = 0;
+    for (let i = 1; i < s.length; i++) distance += s[i].v * ((s[i].t - s[i - 1].t) / 1000);
+  }
+  return { seconds, distance, top: Math.max(...s.map((x) => x.v)), avg: seconds > 0 ? distance / seconds : s.at(-1).v,
+    endedAt: new Date(last).toISOString(), fullRun: !!run.startAt };
+}
+
+function trackRun(m, running) {
+  if (running) {
+    if (!run.active) {
+      Object.assign(run, { active: true, finished: null, samples: [], lastObservedAt: null, startDistance: m.distanceMm,
+        startAt: wasRunning === false ? m.observedAt : null, trackFrom: m.observedAt }); // opened mid-run: the real start is unknown
+    }
+    if (m.observedAt !== run.lastObservedAt) {
+      run.samples.push({ t: Date.parse(m.observedAt), v: m.speedMmPerSecond, d: m.distanceMm });
+      run.lastObservedAt = m.observedAt;
+    }
+  } else if (run.active) {
+    run.active = false;
+    run.finished = runSummary();
+    if (run.finished) store.set('sww-lastrun', JSON.stringify(run.finished));
+  }
+}
+
+const dur = (sec) => {
+  const m = Math.round(sec / 60);
+  return m < 60 ? [String(m), 'min'] : [`${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`, 'h'];
+};
+const setV = (id, value, unit) => $(id).replaceChildren(value, ...(unit ? [node('small', { textContent: unit })] : []));
+
+function drawLine(box, pts) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, text) => {
+    const e = document.createElementNS(ns, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+  const W = box.clientWidth, H = box.clientHeight;
+  if (!W || !H || !pts.length) return;
+  const pad = { l: 46, r: 12, t: 16, b: 30 }, pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  const t0 = pts[0].t, t1 = Math.max(pts.at(-1).t, t0 + 60000);
+  const { top: max, step } = niceScale(Math.max(...pts.map((p) => p.y))), ticks = Math.round(max / step);
+  const X = (t) => pad.l + ((t - t0) / (t1 - t0)) * pw, Y = (v) => pad.t + ph - (v / max) * ph;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': box.dataset.label || 'Line chart' });
+  for (let i = 0; i <= ticks; i++) {
+    const y = pad.t + ph - (ph * i) / ticks;
+    svg.append(el('line', { class: i ? 'gridline' : 'baseline', x1: pad.l, x2: W - pad.r, y1: y, y2: y }));
+    svg.append(el('text', { class: 'tick', x: pad.l - 10, y: y + 4, 'text-anchor': 'end' }, compact.format(step * i)));
+  }
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.t).toFixed(1)},${Y(p.y).toFixed(1)}`).join('');
+  svg.append(el('path', { class: 'area', d: `${d}L${X(pts.at(-1).t).toFixed(1)},${pad.t + ph}L${X(t0).toFixed(1)},${pad.t + ph}Z` }));
+  svg.append(el('path', { class: 'line', d }));
+  svg.append(el('circle', { class: 'enddot', cx: X(pts.at(-1).t), cy: Y(pts.at(-1).y), r: 4 }));
+  const withSeconds = t1 - t0 < 300000;
+  for (const f of [0, 0.5, 1]) {
+    const t = t0 + f * (t1 - t0);
+    svg.append(el('text', { class: 'tick', x: X(t), y: H - 8, 'text-anchor': f === 0 ? 'start' : f === 1 ? 'end' : 'middle' },
+      new Date(t).toLocaleTimeString([], withSeconds ? { hour: '2-digit', minute: '2-digit', second: '2-digit' } : { hour: '2-digit', minute: '2-digit' })));
+  }
+  // crosshair: snaps to the nearest reading
+  let tip = box.querySelector('.tooltip');
+  if (!tip) { tip = node('div', { className: 'tooltip' }, node('div', { className: 'tv' }), node('div', { className: 'tl' })); box.append(tip); }
+  const cross = el('line', { class: 'cross', y1: pad.t, y2: pad.t + ph, visibility: 'hidden' }), dot = el('circle', { class: 'hover-dot', r: 4, visibility: 'hidden' });
+  const hit = el('rect', { x: pad.l, y: pad.t, width: pw, height: ph, fill: 'transparent' });
+  hit.addEventListener('pointermove', (e) => {
+    const rect = svg.getBoundingClientRect(), t = t0 + ((e.clientX - rect.left) * (W / rect.width) - pad.l) / pw * (t1 - t0);
+    const p = pts.reduce((a, b) => (Math.abs(b.t - t) < Math.abs(a.t - t) ? b : a));
+    for (const [k, v] of [['x1', X(p.t)], ['x2', X(p.t)]]) cross.setAttribute(k, v);
+    dot.setAttribute('cx', X(p.t)); dot.setAttribute('cy', Y(p.y));
+    cross.setAttribute('visibility', 'visible'); dot.setAttribute('visibility', 'visible');
+    tip.firstChild.textContent = `${p.y.toFixed(2)} km/h`;
+    tip.lastChild.textContent = new Date(p.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    tip.style.left = `${Math.min(Math.max(X(p.t), 80), W - 80)}px`;
+    tip.style.top = `${Y(p.y)}px`;
+    tip.classList.add('show');
+  });
+  hit.addEventListener('pointerleave', () => { cross.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); tip.classList.remove('show'); });
+  svg.append(cross, dot, hit);
+  box.querySelector('svg')?.remove();
+  box.prepend(svg);
+}
+
+// Half-hour work slots as absolute times. One work unit is one turn of the wheel: lifetime distance / lifetime work
+// is the same ~878 mm every day, and peak speed / peak rpm gives the same circumference.
+function workSlots() {
+  const out = [];
+  for (const d of data.stats?.activity.days ?? []) {
+    for (const b of d.buckets) if (b.coverage !== 'future') out.push({ t: slotTime(d.date, b.startMinuteUtc), work: Number(b.workUnits) || 0 });
+  }
+  return out.filter((x) => x.t <= Date.now()).sort((a, b) => a.t - b.t);
+}
+const mmPerTurn = () => Number(data.stats.lifetime.observedDistanceMm) / Math.max(1, Number(data.stats.lifetime.acceptedWorkUnits));
+
+function lastSession(slots) {
+  let end = slots.length - 1;
+  while (end >= 0 && !slots[end].work) end--;
+  if (end < 0) return null;
+  let start = end, gap = 0;
+  for (let i = end - 1; i >= 0 && gap <= 1; i--) { // a single quiet half hour does not end a session
+    if (slots[i].work) { start = i; gap = 0; } else gap++;
+  }
+  const part = slots.slice(start, end + 1);
+  return { from: slots[start].t, to: slots[end].t + 1800000, turns: part.reduce((a, x) => a + x.work, 0),
+    busiest: part.reduce((a, x) => (x.work > a.work ? x : a)) };
+}
+
+function renderRun() {
+  const box = $('runChart');
+  if (run.active) {
+    const r = runSummary();
+    $('runTitle').textContent = 'Live run';
+    $('runSince').textContent = run.startAt ? `Started at ${fmtTime(run.startAt)}` : `Watching since ${fmtTime(run.trackFrom)}`;
+    [['runL1', 'Time running'], ['runL2', 'Distance'], ['runL3', 'Top speed'], ['runL4', 'Average speed']].forEach(([id, t]) => { $(id).textContent = t; });
+    setV('runV1', ...dur(r.seconds)); setV('runV2', km(r.distance), 'km'); setV('runV3', kmh(r.top), 'km/h'); setV('runV4', kmh(r.avg), 'km/h');
+    box.dataset.label = 'Wheel speed during this run, km/h';
+    drawLine(box, run.samples.map((p) => ({ t: p.t, y: p.v * 0.0036 })));
+    $('runNote').textContent = run.startAt ? 'Speed in km/h, live from the wheel sensor every 10 seconds.' : 'Speed in km/h. The run had already started when you opened the page, so it is tracked from then; readings arrive every 10 seconds.';
+    return;
+  }
+  const watched = (() => { try { return JSON.parse(store.get('sww-lastrun') || 'null'); } catch { return null; } })();
+  const tail = watched ? ` Last run you watched here: ${dur(watched.seconds).join(' ')}, ${km(watched.distance)} km, top ${kmh(watched.top)} km/h, ended ${ago(watched.endedAt)}.` : '';
+  $('runNote').textContent = `The live tracker starts by itself when the hamster runs while this page is open.${tail}`;
+  if (!data.stats) return;
+  const slots = workSlots(), last = lastSession(slots);
+  if (!last) { $('runTitle').textContent = 'Live run'; $('runSince').textContent = 'Waiting for the first run'; return; }
+  const hhmm = (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  $('runTitle').textContent = 'Last run';
+  $('runSince').textContent = `${new Date(last.from).toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${hhmm(last.from)} – ${hhmm(last.to)} your time`;
+  [['runL1', 'Duration'], ['runL2', 'Distance (est.)'], ['runL3', 'Wheel turns'], ['runL4', 'Ended']].forEach(([id, t]) => { $(id).textContent = t; });
+  const hours = (last.to - last.from) / 3600000;
+  setV('runV1', `≈ ${hours < 1 ? Math.round(hours * 60) : Number(hours.toFixed(1))}`, hours < 1 ? 'min' : 'h');
+  setV('runV2', `≈ ${km(last.turns * mmPerTurn())}`, 'km');
+  setV('runV3', nf.format(last.turns), '');
+  setV('runV4', ago(new Date(last.to).toISOString()), '');
+  const recent = slots.slice(-48);
+  box.dataset.label = 'Wheel turns per half hour over the last 24 hours, in your local time';
+  drawBars(box, recent.map((x) => ({ value: x.work, label: `${hhmm(x.t)} – ${hhmm(x.t + 1800000)}`, t: x.t })),
+    { unit: 'wheel turns', every: 8, emptyText: 'No runs in the last 24 hours', xLabel: (it) => hhmm(it.t) });
+}
+
+// ---------- share on X (live numbers in the text)
+function shareText() {
+  const m = data.status?.measurement, b = data.status && (data.status.builder.projected ?? data.status.builder.anchor);
+  const dist = data.stats ? `${km(data.stats.lifetime.observedDistanceMm)} km` : null, blocks = b ? nf.format(BigInt(b.blockHeight)) : null;
+  const so = [dist && `run ${dist}`, blocks && `mined ${blocks} blocks`].filter(Boolean).join(' and ');
+  if (m && wasRunning) return `The @squeekchain hamster is running right now at ${kmh(m.speedMmPerSecond)} km/h 🐹${so ? ` It has ${so} so far.` : ''} Watch it live:`;
+  return `The @squeekchain hamster has ${so || 'been busy'} so far 🐹 Live stats, records and a wallet checker:`;
+}
+const openShare = (text, url) => open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'noopener');
+$('shareBtn').addEventListener('click', () => openShare(shareText(), 'https://www.squeekwheel.xyz/'));
+
+// ---------- live status (every 15 s, every 5 s while it runs): hero, overlay, notifications
+let wasRunning = null;
+function renderStatus(status) {
+  const m = status.measurement;
+  const stale = (Date.now() - Date.parse(m.observedAt)) / 1000 > Number(m.staleAfterSeconds);
+  const running = !stale && m.coreStatus !== 'IDLE' && m.speedMmPerSecond > 0;
+  for (const el of [$('hero'), $('pill'), $('ov')]) {
+    el.classList.toggle('is-running', running);
+    el.classList.toggle('is-stale', stale);
+  }
+  const stateText = stale ? 'Sensor offline' : running ? 'Running now' : 'Resting';
+  $('pillText').textContent = stateText;
+  $('ovState').textContent = stateText;
+  $('headline').textContent = stale ? 'The wheel sensor is offline' : running ? 'The hamster is running' : 'The hamster is resting';
+  document.title = running ? '🐹 Running · Squeek Wheel Watch' : 'Squeek Wheel Watch · Live telemetry from the Squeekchain hamster';
+
+  const mps = m.speedMmPerSecond / 1000, rpm = m.rpmMilli / 1000;
+  $('speed').textContent = kmh(m.speedMmPerSecond);
+  $('ovSpeed').textContent = kmh(m.speedMmPerSecond);
+  $('rpm').textContent = rpm.toFixed(1);
+  $('mps').textContent = mps.toFixed(2);
+  $('sensor').textContent = `Sensor read ${ago(m.observedAt)}`;
+  $('signed').textContent = status.signer?.lastVerifiedAt ? `Signature verified ${ago(status.signer.lastVerifiedAt)}` : '';
+  const spin = `${Math.min(6, Math.max(0.35, 60 / Math.max(rpm, 1))).toFixed(2)}s`;
+  $('wheel').style.setProperty('--spin', spin);
+  $('ovWheel').style.setProperty('--spin', spin);
+
+  const b = status.builder.projected ?? status.builder.anchor;
+  const progress = Number((BigInt(b.blockProgress) * 1000n) / UNITS_PER_BLOCK) / 10;
+  $('height').textContent = `#${nf.format(BigInt(b.blockHeight))}`;
+  $('blockMeter').style.width = `${progress}%`;
+  $('blockProgress').textContent = `${progress.toFixed(0)}% into the next`;
+  $('settled').textContent = `Settled through round ${nf.format(BigInt(status.builder.anchor.settledThroughRound))}`;
+  renderOverlaySub();
+
+  if (wasRunning === false && running) notifyRunning(m);
+  trackRun(m, running);
+  wasRunning = running;
+  if (!OVERLAY) safely(renderRun);
+}
+
+function renderOverlaySub() {
+  const b = data.status && (data.status.builder.projected ?? data.status.builder.anchor);
+  const today = data.stats?.activity.days.at(-1);
+  const parts = [];
+  if (today?.distanceMm != null) parts.push(`${km(today.distanceMm)} km ${sinceLabel(today.date)}`);
+  if (b) parts.push(`block #${nf.format(BigInt(b.blockHeight))}`);
+  $('ovSub').textContent = parts.length ? `${parts.join(' · ')} · squeekwheel.xyz` : 'squeekwheel.xyz';
+}
+
+// ---------- economy (every 15 s) and issuance forecast
+function rewardPerBlock(sch, height) {
+  const period = height / BigInt(sch.halvingBlocks);
+  const base = BigInt(sch.firstPeriodRateBaseUnits) >> period;
+  const bonus = height < BigInt(sch.bonusBlocks) ? BigInt(sch.launchBonusBaseUnits) / BigInt(sch.bonusBlocks) : 0n;
+  return { base, bonus, total: base + bonus };
+}
+
+function blocksPerDay() {
+  const lt = data.stats?.lifetime;
+  if (!lt) return null;
+  const days = Math.max(1, (Date.now() - Date.parse(lt.firstObservedAt)) / 86400000);
+  return Number(lt.settledBlockCount) / days;
+}
+
+function eta(remaining) {
+  const pace = blocksPerDay();
+  if (!pace || remaining <= 0) return '';
+  const days = remaining / pace, when = new Date(Date.now() + days * 86400000);
+  return `About ${nf.format(Math.round(days))} days away (around ${when.toLocaleDateString([], { month: 'short', year: 'numeric' })}) at the average pace so far of ${nf.format(Math.round(pace))} blocks a day.`;
+}
+
+function renderEconomy(eco) {
+  const s = eco.supply, sch = eco.schedule, height = BigInt(sch.closedThroughBlock);
+  const share = pctOf(s.totalMintedBaseUnits, s.capBaseUnits);
+  $('minted').textContent = sqkText(s.totalMintedBaseUnits);
+  $('capMeter').style.width = `${Math.min(100, Math.max(share, 0.6))}%`;
+  $('capShare').textContent = `${share < 0.01 ? share.toFixed(4) : share.toFixed(2)}% of cap`;
+  $('round').textContent = nf.format(BigInt(eco.lifecycle.currentRound));
+  $('nfts').textContent = `${nf.format(BigInt(eco.nft.live))} of ${nf.format(BigInt(eco.nft.issued))}`;
+  $('staked').textContent = `${sqkText(eco.staking.totalStakedBaseUnits)} SQK`;
+  $('rewards').textContent = `${sqkText(eco.staking.rewards.paidBaseUnits)} SQK`;
+  $('gacha').textContent = `${sqkText(eco.mining.gachaFundedBaseUnits)} SQK`;
+  $('stakeFunded').textContent = `${sqkText(eco.mining.stakingFundedBaseUnits)} SQK`;
+  $('cap').textContent = `${compact.format(sqkNum(s.capBaseUnits))} SQK`;
+
+  const r = rewardPerBlock(sch, height);
+  $('perBlock').textContent = sqk2(r.total);
+  $('perBlockSplit').textContent = r.bonus > 0n ? `${sqk2(r.base)} base + ${sqk2(r.bonus)} launch bonus` : `${sqk2(r.base)} base reward`;
+  const bonus = BigInt(sch.bonusBlocks), halving = BigInt(sch.halvingBlocks);
+  $('bonusText').textContent = `block ${nf.format(height)} of ${nf.format(bonus)}`;
+  $('bonusMeter').style.width = `${Math.min(100, Math.max(0.6, pctOf(height, bonus)))}%`;
+  $('bonusEta').textContent = eta(Number(bonus - height));
+  $('halvingText').textContent = `at block ${nf.format(halving)}`;
+  $('halvingMeter').style.width = `${Math.min(100, Math.max(0.6, pctOf(height, halving)))}%`;
+  $('halvingEta').textContent = eta(Number(halving - height));
+}
+
+// ---------- mining activity chart (bars) + table twin + latest settlements
+const nowBuckets = (s) => s.buckets.filter((bk) => Date.parse(bk.startAt) <= Date.now()); // the API window can run past now
+function bucketValue(bk) {
+  const m = METRICS[view.metric];
+  return m.sqk ? sqkNum(bk[m.key]) : Number(bk[m.key]);
+}
+function periodLabel(bk) {
+  const days = view.range !== '24h';
+  return `${fmtTime(bk.startAt, days)} – ${fmtTime(bk.endAt, days && view.range === '7d')}`;
+}
+
+function drawMain() {
+  if (!data.series) return;
+  const items = nowBuckets(data.series).map((bk) => ({ value: bucketValue(bk), label: periodLabel(bk), startAt: bk.startAt }));
+  const box = $('chart');
+  box.dataset.label = `${$('chartTitle').textContent}. Use the table view for every value.`;
+  drawBars(box, items, {
+    unit: METRICS[view.metric].unit,
+    xLabel: (it) => (view.range === '24h' ? fmtTime(it.startAt) : fmtDate(it.startAt)),
+  });
+}
+
+function renderSeries(s) {
+  data.series = s;
+  const m = METRICS[view.metric], buckets = nowBuckets(s);
+  $('chartTitle').textContent = `${m.label} ${PER[view.range]}`;
+  const total = buckets.reduce((sum, bk) => sum + bucketValue(bk), 0);
+  $('chartTotal').replaceChildren(node('b', { textContent: compact.format(total) }), ` ${m.unit} in the last ${view.range.replace('h', ' hours').replace('d', ' days')}`);
+  $('tableMetric').textContent = m.label;
+  $('tableBody').replaceChildren(...buckets.map((bk) => {
+    const tr = document.createElement('tr');
+    tr.insertCell().textContent = periodLabel(bk);
+    const td = tr.insertCell(); td.className = 'num'; td.textContent = nf.format(bucketValue(bk));
+    return tr;
+  }));
+  drawMain();
+  $('chart').classList.remove('loading');
+}
+
+function renderRecent(s) {
+  const rows = s.recentSettlements.slice(0, 8).map((st) => {
+    const tr = document.createElement('tr');
+    const when = tr.insertCell(); when.textContent = ago(st.blockTimestamp); when.title = new Date(st.blockTimestamp).toLocaleString();
+    for (const [v, cls] of [[nf.format(BigInt(st.settledThroughRound)), 'num col-round'], [nf.format(BigInt(st.completedBlockCount)), 'num'], [sqkText(st.sqkMintedBaseUnits), 'num']]) {
+      const td = tr.insertCell(); td.className = cls; td.textContent = v;
+    }
+    tr.insertCell().append(node('a', { href: `https://sepolia.etherscan.io/tx/${st.transactionHash}`, textContent: `${st.transactionHash.slice(0, 8)}…${st.transactionHash.slice(-6)}`, rel: 'noopener', target: '_blank', className: 'mono' }));
+    return tr;
+  });
+  $('recent').replaceChildren(...(rows.length ? rows : [node('tr', {}, node('td', { colSpan: 5, textContent: 'No settlements with blocks yet.' }))]));
+}
+
+function renderDeltas(day) {
+  const sqk = day.buckets.reduce((sum, bk) => sum + BigInt(bk.sqkMintedBaseUnits), 0n);
+  $('blocksDelta').textContent = `+${nf.format(BigInt(day.summary.completedBlockCount))} in 24 h`;
+  $('sqkDelta').textContent = `+${sqkText(sqk)} in 24 h`;
+}
+
+// ---------- measurement stats (every 60 s): distance, records, typical day
+const RECORDS = [
+  ['peakObservedSpeedMmPerSecond', 'Top speed', (v) => [kmh(v), 'km/h']],
+  ['peakObservedRpmMilli', 'Peak rpm', (v) => [(Number(v) / 1000).toFixed(1), 'rpm']],
+  ['longestActiveWindowMinutes', 'Longest run', (v) => (Number(v) >= 60 ? [(Number(v) / 60).toFixed(Number(v) % 60 ? 1 : 0), 'h'] : [v, 'min'])],
+  ['maximumDailyDistanceMm', 'Best day', (v) => [km(v), 'km']],
+  ['longestActiveDayStreak', 'Longest streak', (v) => [String(v), Number(v) === 1 ? 'night' : 'nights']],
+  ['mostWorkHalfHour', 'Busiest 30 min', (v) => [nf.format(Number(v)), 'work']],
+];
+
+function renderStats(st) {
+  data.stats = st;
+  $('distance').replaceChildren(km(st.lifetime.observedDistanceMm), node('small', { textContent: 'km' }));
+  const today = st.activity.days.at(-1);
+  $('today').textContent = today?.distanceMm != null ? `${km(today.distanceMm)} km ${sinceLabel(today.date)}` : 'No reading for the current day yet';
+
+  $('recordTiles').replaceChildren(...RECORDS.filter(([k]) => st.records[k]).map(([k, label, fmt]) => {
+    const rec = st.records[k], [value, unit] = fmt(rec.value);
+    let when = fmtTime(rec.occurredAt, true);
+    if (k === 'maximumDailyDistanceMm') when = `Night of ${nightOf(rec.occurredAt.slice(0, 10))}`;
+    if (k === 'longestActiveDayStreak') {
+      const end = new Date(Date.parse(rec.occurredAt) + (Number(rec.value) - 1) * 86400000).toISOString().slice(0, 10);
+      when = `${fmtUtcDay(rec.occurredAt.slice(0, 10))} – ${fmtUtcDay(new Date(dayStart(end) + 86400000).toISOString().slice(0, 10))}`;
+    }
+    if (k === 'longestActiveWindowMinutes') when = `from ${when}`;
+    return node('div', { className: 'card record' },
+      node('div', { className: 'label', textContent: label }),
+      node('div', { className: 'value' }, value, node('small', { textContent: unit })),
+      node('div', { className: 'when', textContent: rec.coverage === 'complete' ? when : `${when} · partly observed` }));
+  }));
+
+  // typical day: 48 half-hour slots in UTC, rotated so the axis reads in the viewer's local time
+  const slots = st.activity.typicalDay;
+  const offsetSlots = Math.round(-new Date().getTimezoneOffset() / 30);
+  const local = slots.map((_, i) => slots[(((i - offsetSlots) % 48) + 48) % 48]);
+  const items = local.map((s) => ({ value: Math.round(Number(s.meanWorkMilli) / 100) / 10, label: `${clockOfUtcMinute(s.startMinuteUtc)} – ${clockOfUtcMinute(s.startMinuteUtc + 30)}`, startMinuteUtc: s.startMinuteUtc }));
+  const box = $('dayChart');
+  box.dataset.label = 'Average work per half hour of the day, in your local time';
+  drawBars(box, items, { unit: 'work on average', every: 8, peakLabel: false, xLabel: (it) => clockOfUtcMinute(it.startMinuteUtc) });
+  const peak = st.activity.summary.peakWindowStartMinuteUtc;
+  $('dayPeak').textContent = peak != null ? `Busiest from ${clockOfUtcMinute(peak)} your time` : '';
+  $('dayNote').textContent = `Average work per half hour over ${st.activity.summary.activeDayCount} active days since ${fmtDate(st.lifetime.firstObservedAt)}, shown in your local time.`;
+  renderOverlaySub();
+  if (data.eco) renderEconomy(data.eco); // the issuance forecast uses the measured pace
+  if (!OVERLAY && !run.active) renderRun();
+}
+
+// ---------- milestones + live activity (events, every 30 s)
+const MS = {
+  'measurement.distance_milestone': (p) => [`Passed ${km(p.thresholdDistanceMm).replace('.00', '')} km in total`, 'flag'],
+  'measurement.daily_distance_milestone': (p) => [`Ran ${km(p.thresholdDistanceMm).replace('.00', '')} km in one night (${nightOf(p.utcDate)})`, 'calendar'],
+  'measurement.speed_record': (p) => [`New speed record: ${kmh(p.recordMmPerSecond)} km/h`, 'bolt'],
+  'measurement.speed_milestone': (p) => [`Reached ${kmh(p.thresholdSpeedMmPerSecond)} km/h`, 'wind'],
+  'measurement.distance_streak': (p) => [`${p.days} nights in a row with ${km(p.minimumDailyDistanceMm).replace('.00', '')} km or more`, 'flame'],
+};
+
+function renderMilestones(ev) {
+  const rows = ev.events.filter((e) => MS[e.type]).slice(0, 7).map((e) => {
+    const [text, ico] = MS[e.type](e.payload);
+    return node('li', {}, icon(ico),
+      node('span', { className: 'txt' }, text, node('small', { textContent: fmtTime(e.occurredAt, true) })));
+  });
+  $('milestones').replaceChildren(...(rows.length ? rows : [node('li', { className: 'empty-note', textContent: 'No milestones yet.' })]));
+}
+
+function addrButton(a) {
+  return node('button', { className: 'addr', type: 'button', textContent: short(a), title: `Check ${a}`, onclick: () => openWallet(a) });
+}
+
+const FEED = {
+  'nft.deposited': (p) => ['stakeIn', [addrButton(p.account), ` staked Squeek #${p.tokenId}`]],
+  'nft.withdrawn': (p) => ['stakeOut', [addrButton(p.account), ` unstaked Squeek #${p.tokenId}`]],
+  'nft.merged': (p) => ['merge', [addrButton(p.account), ' merged two Squeeks']],
+  'nft.launch_claimed': (p) => ['gift', [addrButton(p.account), ' claimed a launch Squeek']],
+  'account.rewards_claimed': (p) => ['coins', [addrButton(p.account), ` claimed ${sqk2(p.amountBaseUnits)} SQK`]],
+  'account.rewards_staked': (p) => ['repeat', [addrButton(p.account), p.amountBaseUnits ? ` restaked ${sqk2(p.amountBaseUnits)} SQK` : ' restaked rewards']],
+  'account.sqk_staked': (p) => ['up', [addrButton(p.account), p.amountBaseUnits ? ` staked ${sqk2(p.amountBaseUnits)} SQK` : ' staked SQK']],
+  'account.sqk_unstaked': (p) => ['down', [addrButton(p.account), p.amountBaseUnits ? ` unstaked ${sqk2(p.amountBaseUnits)} SQK` : ' unstaked SQK']],
+  'system.settlement_completed': (p) => (Number(p.completedBlockCount) > 0 ? ['block', [`Round ${nf.format(BigInt(p.settledThroughRound))} settled with ${nf.format(BigInt(p.completedBlockCount))} blocks`]] : null),
+};
+
+function renderFeed(events) {
+  const rows = [];
+  for (const e of events) {
+    const f = FEED[e.type]?.(e.payload || {});
+    if (!f) continue;
+    rows.push(node('li', {}, icon(f[0]),
+      node('span', { className: 'txt' }, ...f[1], node('small', { textContent: ago(e.occurredAt) }))));
+    if (rows.length === 7) break;
+  }
+  $('feed').replaceChildren(...(rows.length ? rows : [node('li', { className: 'empty-note', textContent: 'Quiet right now.' })]));
+}
+
+// ---------- wallet checker (hash route #wallet=0x…)
+const ADDR = /^0x[0-9a-fA-F]{40}$/;
+function openWallet(a) {
+  $('walletInput').value = a;
+  history.replaceState(null, '', `#wallet=${a}`);
+  checkWallet(a);
+  $('wallet').scrollIntoView();
+}
+
+async function checkWallet(addr) {
+  const out = $('walletResult');
+  out.hidden = false;
+  if (!ADDR.test(addr)) {
+    out.replaceChildren(node('p', { className: 'empty-note', textContent: 'That is not a valid 0x wallet address.' }));
+    return;
+  }
+  out.replaceChildren(node('p', { className: 'empty-note', textContent: 'Reading the wallet…' }));
+  let acct;
+  try {
+    acct = await get(`/accounts/${addr}?limit=100`);
+    if (!ready(acct, 'tokenCounts', 'power', 'rewards', 'stake', 'tokens', 'earnings')) throw new Error('unavailable');
+  } catch (e) {
+    out.replaceChildren(node('p', { className: 'empty-note', textContent: e.status === 404 ? 'Nothing found for this wallet.' : 'The wallet could not be read right now. Try again in a moment.' }));
+    return;
+  }
+  const staked = Number(acct.tokenCounts.staking), inWallet = Number(acct.tokenCounts.wallet);
+  const power = Number((BigInt(acct.power.nftPower) + BigInt(acct.power.sqkPower)) / WEI);
+  const lifetime = BigInt(acct.rewards.lifetimePaidBaseUnits) + BigInt(acct.rewards.lifetimeCompoundedBaseUnits);
+  const tile = (label, value, sub) => node('div', { className: 'card record' }, node('div', { className: 'label', textContent: label }),
+    node('div', { className: 'value', textContent: value }), node('div', { className: 'when', textContent: sub }));
+  const tiles = node('div', { className: 'wallet-tiles' },
+    tile('Squeeks', nf.format(staked + inWallet), `${nf.format(staked)} staked · ${nf.format(inWallet)} in wallet`),
+    tile('Mining power', compact.format(power), 'from staked Squeeks and SQK'),
+    tile('SQK staked', sqkText(acct.stake.principalBaseUnits), 'principal'),
+    tile('Claimable now', sqk2(acct.rewards.claimableBaseUnits), 'SQK'),
+    tile('Rewards received', sqk2(lifetime), 'SQK, all time'));
+  const shareWallet = node('button', { className: 'link-btn', type: 'button', textContent: 'Share on X',
+    onclick: () => openShare(`This wallet holds ${nf.format(staked + inWallet)} Squeeks and has received ${sqk2(lifetime)} SQK in rewards on @squeekchain 🐹 Check any wallet:`, `https://www.squeekwheel.xyz/#wallet=${addr}`) });
+  const head = node('div', { className: 'chart-top', style: 'margin-top:18px' },
+    node('span', { className: 'chart-title', textContent: 'SQK earned per day' }),
+    node('span', { style: 'display:flex;gap:16px;align-items:baseline' }, shareWallet,
+      node('a', { href: `https://sepolia.etherscan.io/address/${addr}`, target: '_blank', rel: 'noopener', className: 'mono', textContent: `${short(addr)} on Etherscan ↗` })));
+  const chart = node('div', { className: 'chart short' });
+  const nftHead = node('div', { className: 'chart-top', style: 'margin-top:14px' }, node('span', { className: 'chart-title', textContent: 'Squeeks' }),
+    node('span', { className: 'chart-total', textContent: acct.tokens.length ? `${acct.tokens.length > 12 ? `first 12 of ${nf.format(staked + inWallet)}` : nf.format(acct.tokens.length)}` : 'none' }));
+  const grid = node('div', { className: 'nfts' });
+  out.replaceChildren(tiles, head, chart, nftHead, grid);
+  chart.dataset.label = 'SQK earned per day over the last week';
+  drawBars(chart, acct.earnings.map((d) => ({ value: Math.round(sqkNum(d.earnedBaseUnits)), label: fmtUtcDay(d.date), date: d.date })),
+    { unit: 'SQK', every: 1, emptyText: 'No SQK earned this week', xLabel: (it) => fmtUtcDay(it.date) });
+  const queue = acct.tokens.slice(0, 12).map((t) => {
+    const ph = node('div', { className: 'ph' });
+    grid.append(node('div', { className: 'nft' }, ph,
+      node('div', { className: 'meta' }, node('b', { textContent: `#${t.tokenId}` }), node('span', { textContent: `Lv ${t.level} · ${t.custody === 'staking' ? 'staked' : 'in wallet'}` }))));
+    return { t, ph };
+  });
+  // the art is a large on-chain SVG per Squeek: fetch three at a time, retry once, so the API is not flooded
+  const load = async ({ t, ph }) => {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const sq = await get(`/squeeks/${t.tokenId}`), uri = sq.metadata?.imageDataUri;
+        if (uri && uri.startsWith('data:image/')) ph.replaceWith(node('img', { src: uri, alt: sq.metadata.name || `Squeek #${t.tokenId}` }));
+        return;
+      } catch { await new Promise((r) => setTimeout(r, 1200)); }
+    }
+  };
+  const workers = Array.from({ length: 3 }, async () => { while (queue.length) await load(queue.shift()); });
+  await Promise.all(workers);
+}
+
+$('walletForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const a = $('walletInput').value.trim();
+  history.replaceState(null, '', ADDR.test(a) ? `#wallet=${a}` : location.pathname + location.search);
+  checkWallet(a);
+});
+
+// ---------- notifications + squeak sound (works while this page is open)
+const store = {
+  get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+};
+let notifyOn = store.get('sww-notify') === '1' && 'Notification' in window && Notification.permission === 'granted';
+let soundOn = store.get('sww-sound') === '1';
+let audio = null;
+
+function renderNotify() {
+  $('notifyBtn').setAttribute('aria-pressed', String(notifyOn));
+  $('notifyText').textContent = notifyOn ? 'Notifications on' : 'Notify me when it runs';
+  $('soundBtn').hidden = !notifyOn;
+  $('soundBtn').setAttribute('aria-pressed', String(soundOn));
+  $('soundBtn').textContent = `Squeak sound: ${soundOn ? 'on' : 'off'}`;
+  $('notifyHint').textContent = notifyOn ? 'Keep this tab open, even in the background.' : '';
+}
+
+function squeak() {
+  if (!audio) return;
+  const t = audio.currentTime;
+  for (const [start, f1, f2] of [[0, 2200, 3400], [0.16, 2600, 3900]]) {
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f1, t + start);
+    o.frequency.exponentialRampToValueAtTime(f2, t + start + 0.11);
+    g.gain.setValueAtTime(0.0001, t + start);
+    g.gain.exponentialRampToValueAtTime(0.18, t + start + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + start + 0.13);
+    o.connect(g).connect(audio.destination);
+    o.start(t + start); o.stop(t + start + 0.14);
+  }
+}
+
+function notifyRunning(m) {
+  if (soundOn) squeak();
+  if (!notifyOn) return;
+  try { new Notification('The hamster is running 🐹', { body: `${kmh(m.speedMmPerSecond)} km/h right now · squeekwheel.xyz`, tag: 'sww-running' }); } catch {}
+}
+
+$('notifyBtn').addEventListener('click', async () => {
+  if (!('Notification' in window)) { $('notifyHint').textContent = 'This browser does not support notifications.'; return; }
+  if (notifyOn) { notifyOn = false; store.set('sww-notify', '0'); renderNotify(); return; }
+  const p = await Notification.requestPermission();
+  notifyOn = p === 'granted';
+  store.set('sww-notify', notifyOn ? '1' : '0');
+  renderNotify();
+  if (p === 'denied') $('notifyHint').textContent = 'Notifications are blocked for this site in your browser settings.';
+});
+$('soundBtn').addEventListener('click', () => {
+  soundOn = !soundOn;
+  store.set('sww-sound', soundOn ? '1' : '0');
+  if (soundOn) { audio ??= new AudioContext(); audio.resume(); squeak(); }
+  renderNotify();
+});
+addEventListener('pointerdown', () => { if (soundOn && !audio) audio = new AudioContext(); }, { once: true });
+
+// ---------- overlay promo
+$('copyOverlay').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('overlayUrl').value); $('copyOverlay').textContent = 'Copied'; }
+  catch { $('overlayUrl').select(); }
+  setTimeout(() => { $('copyOverlay').textContent = 'Copy'; }, 1600);
+});
+
+// ---------- theme toggle (per-viewer convenience; storage may be unavailable)
+(function theme() {
+  const root = document.documentElement, param = new URLSearchParams(location.search).get('theme');
+  const saved = param || store.get('sww-theme');
+  if (saved === 'light' || saved === 'dark') root.dataset.theme = saved;
+  $('theme').addEventListener('click', () => {
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    store.set('sww-theme', root.dataset.theme);
+  });
+})();
+
+// ---------- loops
+function banner(msg) {
+  $('banner').classList.toggle('show', !!msg);
+  $('bannerText').textContent = msg || '';
+}
+
+async function refreshLive() {
+  const [status, eco] = await Promise.allSettled([get('/status'), OVERLAY ? null : get('/economy/state')]);
+  const liveOk = status.status === 'fulfilled' && ready(status.value, 'measurement', 'builder');
+  const ecoOk = OVERLAY || (eco.status === 'fulfilled' && ready(eco.value, 'supply', 'schedule', 'lifecycle', 'mining', 'staking', 'nft'));
+  if (liveOk) { data.status = status.value; safely(renderStatus, status.value); }
+  if (!OVERLAY && ecoOk) { data.eco = eco.value; safely(renderEconomy, eco.value); }
+  banner(liveOk && ecoOk ? '' : 'Live data is temporarily unavailable. Showing the last reading and retrying every 15 seconds.');
+}
+
+async function refreshStats() {
+  try {
+    const st = await get('/measurement/stats?range=30d');
+    if (ready(st, 'lifetime', 'activity', 'records')) safely(renderStats, st);
+  } catch {}
+}
+
+async function refreshSeries() {
+  $('chart').classList.add('loading');
+  try {
+    const want = view.range;
+    const [s, day] = await Promise.all([get(`/settlements?range=${want}`), want === '24h' ? null : get('/settlements?range=24h')]);
+    if (want !== view.range) return; // a newer range was picked meanwhile
+    if (ready(s, 'buckets', 'summary', 'recentSettlements')) { safely(renderSeries, s); safely(renderRecent, s); }
+    if (ready(day ?? s, 'buckets', 'summary')) safely(renderDeltas, day ?? s);
+    $('chart').classList.remove('loading');
+  } catch {
+    $('chart').classList.remove('loading');
+  }
+}
+
+async function refreshEvents() {
+  const [ms, players, protocol] = await Promise.allSettled([get('/events?category=measurement&limit=40'),
+    get('/events?category=players&limit=25'), get('/events?category=protocol&limit=100')]);
+  if (ms.status === 'fulfilled' && Array.isArray(ms.value.events)) safely(renderMilestones, ms.value);
+  const merged = [players, protocol].flatMap((r) => (r.status === 'fulfilled' && Array.isArray(r.value.events) ? r.value.events : []))
+    .sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt));
+  if (merged.length || players.status === 'fulfilled') safely(renderFeed, merged);
+}
+
+function bindSeg(id, key) {
+  $(id).addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    view[key] = btn.dataset[key];
+    for (const b of $(id).querySelectorAll('button')) b.setAttribute('aria-pressed', String(b === btn));
+    if (key === 'range') refreshSeries(); else if (data.series) renderSeries(data.series);
+  });
+}
+
+async function liveLoop() {
+  await refreshLive();
+  const missing = !data.status || (!OVERLAY && !data.eco); // first load failed: try again soon instead of in 15 s
+  setTimeout(liveLoop, run.active ? 5_000 : missing ? 3_000 : 15_000);
+}
+
+if (OVERLAY) {
+  document.documentElement.classList.add('overlay-mode');
+  liveLoop(); refreshStats();
+  setInterval(refreshStats, 60_000);
+} else {
+  bindSeg('rangeSeg', 'range');
+  bindSeg('metricSeg', 'metric');
+  $('tableToggle').addEventListener('click', () => {
+    const open = $('dataTable').hidden;
+    $('dataTable').hidden = !open;
+    $('tableToggle').setAttribute('aria-expanded', String(open));
+    $('tableToggle').textContent = open ? 'Hide table' : 'Show as table';
+  });
+  let resizeTimer;
+  addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { drawMain(); if (data.stats) renderStats(data.stats); safely(renderRun); }, 120);
+  });
+  renderNotify();
+  $('overlayFrame').src = `${location.pathname}?overlay${document.documentElement.dataset.theme ? `&theme=${document.documentElement.dataset.theme}` : ''}`;
+  const hashWallet = location.hash.match(/^#wallet=(0x[0-9a-fA-F]{40})$/);
+  if (hashWallet) { $('walletInput').value = hashWallet[1]; checkWallet(hashWallet[1]); setTimeout(() => $('wallet').scrollIntoView(), 300); }
+  liveLoop(); refreshSeries(); refreshStats(); refreshEvents();
+  setInterval(refreshSeries, 60_000);
+  setInterval(refreshStats, 60_000);
+  setInterval(refreshEvents, 30_000);
+}
+</script>
+</body>
+</html>
