@@ -17,7 +17,8 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const DPR = Math.min(2, window.devicePixelRatio || 1);
 const nf = new Intl.NumberFormat('en-US');
 const VISUAL = 0.3;          // the card turns at 30 % of the wheel's real rpm, fast enough to feel it, slow enough to watch
-const WET_STEP = 450;        // while he runs, a drop of wet paint lands every 450 turns until the half hour is published
+const WET_STEP = 200;        // while he runs, a drop of wet paint lands every 200 turns (2–3 min) until the half hour is published
+const MM_PER_TURN = 878;     // one turn of the wheel ≈ 88 cm (Squeekchain's own distance ÷ turns)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const store = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
@@ -107,6 +108,20 @@ function typicalStart() {
   const byMin = new Map(data.typical.map((b) => [b.startMinuteUtc, Number(b.meanWorkMilli) / 1000]));
   for (let i = 0; i < SLOTS; i++) { const m = (720 + i * 30) % 1440; if ((byMin.get(m) ?? 0) >= 300) return m; }
   return null;
+}
+// "5 h 40 min" until his usual start (today or tomorrow), or null when unknown.
+function untilStart() {
+  const m = typicalStart(); if (m == null) return null;
+  const d = new Date(); d.setUTCHours(Math.floor(m / 60), m % 60, 0, 0);
+  if (d - Date.now() < -2 * 3600e3) d.setUTCDate(d.getUTCDate() + 1);
+  const mins = Math.round((d - Date.now()) / 60e3);
+  if (mins <= 0) return null;
+  return mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m`;
+}
+// Optional browser notification when he gets on the wheel (only while this page is open).
+function notifyStart() {
+  if (store.get('sart-notify') !== '1' || !('Notification' in window) || Notification.permission !== 'granted') return;
+  try { new Notification('Squeektoshi is painting 🐹🎨', { body: 'He just got on the wheel. Tonight\'s card is spinning.', tag: 'sart-start' }); } catch {}
 }
 const isStale = (st) => { const m = st?.measurement; return !!m && !(Date.now() - Date.parse(m.observedAt) <= Number(m.staleAfterSeconds) * 1000); };
 const isRunning = (st) => { const m = st?.measurement; return !!m && !isStale(st) && m.coreStatus !== 'IDLE' && Number(m.speedMmPerSecond) > 0; };
@@ -335,10 +350,13 @@ function renderLiveText(v) {
   $('pillText').textContent = stateText;
   $('headline').textContent = running ? 'Squeektoshi is painting right now' : stale ? 'The wheel sensor is offline' : 'Squeektoshi paints every night';
   document.title = running ? '🐹🎨 Painting now · Squeek Spin Art' : 'Squeek Spin Art · Paintings by the hamster that mines Squeekchain';
-  $('rpm').textContent = st && !stale ? (Number(st.measurement.rpmMilli) / 1000).toFixed(0) : '–';
+  const wait = untilStart();
+  const [num, unit] = running ? [(Number(st.measurement.rpmMilli) / 1000).toFixed(0), 'rpm']
+    : turnsTonight > 0 ? [nf.format(turnsTonight), 'turns tonight']
+    : wait != null ? [wait, 'until he usually starts'] : ['–', 'rpm'];
+  $('rpm').textContent = num; $('rpmUnit').textContent = unit;
   $('tonightTurns').textContent = nf.format(turnsTonight);
-  const archivedTonight = data.archive[now().date], day = data.days.get(now().date);
-  $('tonightKm').textContent = km(archivedTonight?.distanceMm ?? day?.distanceMm ?? 0);
+  $('tonightKm').textContent = km(turnsTonight * MM_PER_TURN);      // from the same turns, so the two never disagree mid-run
   $('sensor').textContent = st ? `sensor read ${ago(st.measurement.observedAt)}` : data.statusFailed ? 'can\'t reach the Squeekchain API right now' : '';
   const cap = $('heroCaption');
   if (v.mode === 'last') {
@@ -346,7 +364,7 @@ function renderLiveText(v) {
     const b = document.createElement('b'); b.textContent = `Last night: ${v.plan.title}.`;
     cap.append(b, ` ${nf.format(v.plan.stats.turns)} turns, ${km(v.plan.stats.distanceMm)} km. Tonight's card is still blank. ${startText}`);
   } else {
-    cap.textContent = running ? 'Tonight\'s card is spinning at his real speed. Wet paint lands as he runs and dries into the painting each half hour.'
+    cap.textContent = running ? 'Tonight\'s card turns with his real speed (slowed down so you can watch). Wet paint lands every 200 turns and dries into the painting each half hour.'
       : turnsTonight > 0 ? `Tonight's card so far: ${nf.format(turnsTonight)} turns. It spins again as soon as he gets back on the wheel, and the night ends at 12:00 UTC.`
       : `Tonight's card is blank so far. ${startText}`;
   }
@@ -367,7 +385,9 @@ async function pollStatus() {
       const st = await getJSON('/v1/status');
       if (!st?.measurement?.observedAt) throw new Error('status without a measurement');
       data.status = st; data.statusFailed = false;
-      if (isRunning(st)) lastRunAt = Date.now();
+      // He runs in bursts, so only a start after at least 20 quiet minutes counts as "he started".
+      if (isRunning(st)) { if (data.restingSince && Date.now() - data.restingSince > 20 * 60e3) notifyStart(); data.restingSince = 0; lastRunAt = Date.now(); }
+      else if (!data.restingSince) data.restingSince = Date.now();
       liveWet();
     } catch (e) { data.statusFailed = true; console.warn('status', e.message); }
     try { refreshLive(); applySpin(); toy.onStatus(); } catch (e) { console.warn('render', e.message); }   // a stale reading shows as offline
@@ -663,7 +683,7 @@ const portraits = {
       const j = await getJSON(`/v1/accounts/${addr}?limit=100`);
       if (seq !== this.seq) return;
       const tokens = j.tokens ?? [];
-      if (!tokens.length) { this.hint('That wallet holds no Squeeks on Squeekchain yet.'); return; }
+      if (!tokens.length) { this.hint('That wallet holds no Squeeks on Squeekchain yet.'); history.replaceState(null, '', location.pathname + location.search); return; }
       const list = $('ptList');
       for (const t of tokens) {
         const b = document.createElement('button'); b.type = 'button'; b.className = 'chip';
@@ -748,8 +768,8 @@ const toy = {
       const a = Math.random() * TAU, r = 0.15 + Math.random() * 0.5;
       this.place(r * Math.cos(a), r * Math.sin(a), 0.5 + Math.random() * 0.5, `${Date.now()}|${Math.random()}`);
     });
-    $('srcLive').addEventListener('click', () => this.setSrc('live'));
-    $('srcLast').addEventListener('click', () => this.setSrc('last'));
+    $('srcLive').addEventListener('click', () => { this.chosen = true; this.setSrc('live'); });
+    $('srcLast').addEventListener('click', () => { this.chosen = true; this.setSrc('last'); });
     $('toyUndo').addEventListener('click', () => this.undo());
     $('toyClear').addEventListener('click', () => { this.drops = []; this.waiting = []; this.card.clearPaint(); this.buttons(); });
     $('toySave').addEventListener('click', () => {
@@ -781,12 +801,13 @@ const toy = {
   setSrc(src) {
     if (src === 'last' && !this.lastSlots.length) return;
     this.src = src; $('srcLive').setAttribute('aria-pressed', String(src === 'live')); $('srcLast').setAttribute('aria-pressed', String(src === 'last'));
+    $('toyHint').textContent = 'Tap the card to drop paint';
     clearTimeout(this.lastTimer);
     if (src === 'last') { this.lastIdx = 0; this.stepLast(); } else this.onStatus();
   },
   stepLast() {
     const s = this.lastSlots[this.lastIdx % this.lastSlots.length]; this.lastIdx++;
-    this.omega = Math.min(1.15, s.w / 1800); this.rpm = this.omega * 95;
+    this.omega = Math.min(1.15, s.w / 1800); this.rpm = s.w / 30;     // a half hour's turns ÷ 30 minutes = its average rpm
     this.card.target = (this.rpm / 60) * TAU * VISUAL; kick();
     $('srcHint').textContent = `Last night at ${slotUtc(s.i)} UTC he made ${nf.format(s.w)} turns in half an hour.`;
     this.render(); this.flingWaiting();
@@ -797,6 +818,11 @@ const toy = {
     const last = finishedNights()[0];
     this.lastSlots = last ? nightOf(last.date).slots.map((w, i) => ({ w: w ?? 0, i })).filter((s) => s.w > 0) : [];
     $('srcLast').disabled = !this.lastSlots.length;
+    // While he rests, start on last night's speeds so the first tap flies; switch to live once he runs (unless chosen).
+    if (!this.chosen && this.lastSlots.length && data.status) {
+      const want = liveRpm() > 0 ? 'live' : 'last';
+      if (want !== this.src) { this.setSrc(want); return; }
+    }
     if (this.src !== 'live') return;
     this.rpm = liveRpm(); this.omega = Math.min(1.15, this.rpm / 95);
     this.card.target = this.rpm > 0 ? (this.rpm / 60) * TAU * VISUAL : 0; kick();
@@ -890,6 +916,13 @@ async function start() {
     toy.init();
     $('replayHero').addEventListener('click', () => { const last = finishedNights()[0]; if (last && openNight(last.date)) replay(dlgCard, last); });
     $('overlayFrame').src = overlaySrc();
+    const nb = $('notifyBtn'), setNb = () => { nb.textContent = store.get('sart-notify') === '1' && Notification.permission === 'granted' ? 'I\'ll tell you when he starts' : 'Tell me when he starts'; };
+    if (!('Notification' in window)) nb.hidden = true;
+    else { setNb(); nb.addEventListener('click', async () => {
+      if (store.get('sart-notify') === '1') store.set('sart-notify', '0');
+      else if ((await Notification.requestPermission()) === 'granted') store.set('sart-notify', '1');
+      setNb();
+    }); }
   }
   pollStatus();                                                 // the live wheel doesn't wait for the history
   await Promise.allSettled([document.fonts.load('600 20px "JetBrains Mono"'), document.fonts.load('700 20px Inter'), loadArchive()]);

@@ -109,9 +109,14 @@
   .disc { display: block; width: 100%; height: auto; aspect-ratio: 1; border-radius: 50%; box-shadow: var(--disc-shadow); touch-action: manipulation; }
   .disc-wrap { position: relative; width: 100%; aspect-ratio: 1; border-radius: 50%; box-shadow: var(--disc-shadow); }
   .disc-wrap > canvas { display: block; width: 100%; height: 100%; border-radius: 50%; will-change: transform; }
+  :root[data-theme="light"] :is(.disc, .disc-wrap) { box-shadow: var(--disc-shadow), 0 0 0 1px rgba(40, 30, 10, .1); }
+  @media (prefers-color-scheme: light) { :root:where(:not([data-theme="dark"])) :is(.disc, .disc-wrap) { box-shadow: var(--disc-shadow), 0 0 0 1px rgba(40, 30, 10, .1); } }
 
   /* hero */
-  .hero { display: grid; grid-template-columns: 1fr minmax(0, 470px); gap: 36px; align-items: center; padding: 36px 40px; margin-top: 6px; overflow: hidden; }
+  .hero { display: grid; grid-template-columns: 1fr minmax(0, 470px); grid-template-areas: "head art" "body art"; gap: 0 36px; align-items: center; padding: 36px 40px; margin-top: 6px; overflow: hidden; }
+  .hero-head { grid-area: head; align-self: end; }
+  .hero-body { grid-area: body; align-self: start; }
+  .hero-art { grid-area: art; }
   .eyebrow { margin: 0 0 10px; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
   h1 { margin: 0; font-size: clamp(30px, 4.2vw, 46px); line-height: 1.08; letter-spacing: -.025em; font-weight: 700; }
   .lede { margin: 14px 0 22px; max-width: 54ch; color: var(--ink-2); font-size: 16px; }
@@ -233,7 +238,8 @@
   .ov-cap { display: inline-flex; align-items: center; gap: 1.6vmin; padding: 1.4vmin 3vmin; border-radius: 999px; background: rgba(13, 13, 17, .82); color: #f0efec;
     font: 600 3.4vmin/1.2 Inter, system-ui, sans-serif; border: 1px solid rgba(255, 255, 255, .1); white-space: nowrap; max-width: 96vw; overflow: hidden; text-overflow: ellipsis; }
   .ov-cap .dot { width: 2vmin; height: 2vmin; }
-  #overlayRoot .disc-wrap { width: min(92vmin, 100%); box-shadow: 0 2vmin 5vmin rgba(0, 0, 0, .45); }
+  #overlayRoot .disc-wrap { width: min(92vmin, calc(100vh - 17vmin), 100%); box-shadow: 0 2vmin 5vmin rgba(0, 0, 0, .45); }
+  html.overlay-mode body { height: 100vh; overflow: hidden; }
   .ov-corner { display: none; }
   html.corner #overlayRoot { grid-template-columns: auto 1fr; justify-items: start; align-items: center; gap: 4vh; padding: 4vh; }
   html.corner #overlayRoot .disc-wrap { width: 92vh; box-shadow: 0 1.5vh 4vh rgba(0, 0, 0, .45); }
@@ -250,8 +256,9 @@
 
   @media (max-width: 920px) {
     .hero, .toy, .stream, .dlg, .portraits { grid-template-columns: 1fr; }
-    .hero { padding: 26px 22px; }
-    .hero-art { order: -1; }
+    .hero { padding: 26px 22px; grid-template-areas: "head" "art" "body"; }
+    .hero-art { margin: 18px 0 6px; }
+    .hero-figure .num { font-size: 40px; }
     .hero-art .disc-wrap { max-width: 360px; }
     .portraits { padding: 20px; }
     .steps { grid-template-columns: repeat(2, 1fr); }
@@ -299,12 +306,14 @@
 
   <main>
     <section class="hero card" id="hero" aria-labelledby="headline">
-      <div>
+      <div class="hero-head">
         <p class="eyebrow">Painted by a real hamster</p>
         <h1 id="headline">Squeektoshi paints every night</h1>
+      </div>
+      <div class="hero-body">
         <p class="lede">Squeekchain is mined by a real hamster on a real wheel. Here that wheel is also a spin-art machine: every half hour he runs drops paint on tonight's card, at that hour on its clock face, and the faster he runs the further the paint flies. By morning the card is a painting of his night.</p>
         <div class="live">
-          <div class="hero-figure"><span class="num" id="rpm">–</span><span class="unit">rpm</span></div>
+          <div class="hero-figure"><span class="num" id="rpm">–</span><span class="unit" id="rpmUnit">rpm</span></div>
           <div class="hero-meta">
             <span><b id="tonightTurns">–</b> turns tonight</span>
             <span><b id="tonightKm">–</b> km</span>
@@ -321,7 +330,9 @@
             <span id="replayHeroText">Replay last night</span>
           </button>
           <a class="btn" href="#stream">Put it on your stream</a>
+          <button class="btn" id="notifyBtn" type="button">Tell me when he starts</button>
         </div>
+        <p class="hint">Watch Squeektoshi himself on <a href="https://x.com/squeekchain" rel="noopener" target="_blank">@squeekchain's nightly live stream</a> (around 21:00 UTC) and keep this page open next to it.</p>
       </div>
       <figure class="hero-art">
         <div class="disc-wrap"><canvas id="heroCanvas" role="img" aria-label="Tonight's card"></canvas></div>
@@ -335,7 +346,7 @@
     <section class="gallery" id="galleryGrid"><div class="empty">Collecting the paintings…</div></section>
 
     <div class="section-head" id="squeeks">
-      <div><h2>Your Squeek, painted every night</h2><p>Every Squeek NFT gets its own painting of every night he runs: its own colours, its own on-chain art in the middle, and a gold ring while it's staked and mining.</p></div>
+      <div><h2>Your Squeek, painted every night</h2><p>Every Squeek NFT gets its own painting of every night he runs: its own colours, its own on-chain art in the middle, and a double gold ring while it's staked and mining. Squeeks are Squeekchain's dot-grid hamster NFTs.</p></div>
     </div>
     <section class="card portraits">
       <div class="pt-stage">
@@ -361,7 +372,7 @@
           <a class="btn" id="ptShare" target="_blank" rel="noopener">Share on X</a>
           <button class="btn" type="button" id="ptLink">Copy link</button>
         </div>
-        <p class="hint">Squeeks live on Squeekchain's Sepolia test network for now; when the Genesis Squeeks launch, theirs will show up here the same way.</p>
+        <p class="hint">The portrait is drawn on this page from public data; it doesn't change the NFT itself. Squeeks are on Squeekchain's Sepolia test network for now.</p>
       </div>
     </section>
 
@@ -397,7 +408,7 @@
     </section>
 
     <div class="section-head" id="stream">
-      <div><h2>Put it on your stream</h2><p>Tonight's card, spinning at his real speed and filling with paint as he runs, on a see-through background.</p></div>
+      <div><h2>Put it on your stream</h2><p>Tonight's card, turning with his real speed and filling with paint as he runs, on a see-through background.</p></div>
     </div>
     <section class="card stream">
       <div>

@@ -99,7 +99,7 @@ export function marksFromEvents(events) {
     const p = e.payload ?? {};
     let label = null;
     if (e.type === 'measurement.distance_milestone' && Number(p.thresholdDistanceMm) % 50e6 === 0) label = `${Math.round(Number(p.thresholdDistanceMm) / 1e6)} km run in his lifetime`;
-    else if (e.type === 'measurement.speed_record') label = `new top speed, ${(Number(p.recordMmPerSecond) * 0.0036).toFixed(2)} km/h`;
+    else if (e.type === 'measurement.speed_record') label = `a new top speed at the time (${(Number(p.recordMmPerSecond) * 0.0036).toFixed(2)} km/h)`;
     if (label) out.push({ ...slotOf(e.occurredAt), kind: e.type.replace('measurement.', ''), label, at: e.occurredAt });
   }
   return out;
