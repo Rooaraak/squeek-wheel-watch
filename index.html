@@ -107,7 +107,7 @@
 
   /* discs: static ones are plain canvases; spinning ones sit in a still, round wrapper that carries the shadow */
   .disc { display: block; width: 100%; height: auto; aspect-ratio: 1; border-radius: 50%; box-shadow: var(--disc-shadow); touch-action: manipulation; }
-  .disc-wrap { position: relative; width: 100%; aspect-ratio: 1; border-radius: 50%; box-shadow: var(--disc-shadow); }
+  .disc-wrap { position: relative; width: 100%; aspect-ratio: 1; border-radius: 50%; box-shadow: var(--disc-shadow); overflow: hidden; contain: paint; }   /* the spinning canvas's corners must not count as overflow (scrollbars would flicker) */
   .disc-wrap > canvas { display: block; width: 100%; height: 100%; border-radius: 50%; will-change: transform; }
   :root[data-theme="light"] :is(.disc, .disc-wrap) { box-shadow: var(--disc-shadow), 0 0 0 1px rgba(40, 30, 10, .1); }
   @media (prefers-color-scheme: light) { :root:where(:not([data-theme="dark"])) :is(.disc, .disc-wrap) { box-shadow: var(--disc-shadow), 0 0 0 1px rgba(40, 30, 10, .1); } }
