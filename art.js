@@ -142,7 +142,10 @@ function titleOf(paletteName, stats, r) {
 // runs and paint already on it never changes. The palette depends only on the date. The fingerprint (SHA-256 of all
 // the numbers) names the finished painting and picks its title.
 // Steps through all eight palettes (3 and 8 share no factor), so nights in a row never share one.
-export function paletteOf(date) { return PALETTES[((Date.parse(`${date}T00:00:00Z`) / 86400e3) * 3) % PALETTES.length]; }
+export function paletteOf(date) {
+  const day = Date.parse(`${date}T00:00:00Z`) / 86400e3;
+  return PALETTES[Number.isInteger(day) ? (((day * 3) % PALETTES.length) + PALETTES.length) % PALETTES.length : 0];
+}
 
 // Paint colour follows the hour: the palette runs from 20:00 UTC (first colour) to 08:00 UTC (last).
 export function hourT(slot) { return Math.max(0, Math.min(1, (slot - 16) / 24)); }
@@ -155,8 +158,8 @@ export function slotDrops(date, slot, turns, palette = paletteOf(date)) {
   return out;
 }
 
-export function markDrop(date, mark, palette = paletteOf(date)) {
-  return slotDrop(rng(sha256Hex(`${ENGINE}|${date}|mark|${mark.slot}|${mark.kind}`)), palette, mark.slot, 1, 0.95, true);
+export function markDrop(date, mark, palette = paletteOf(date), n = 0) {
+  return slotDrop(rng(sha256Hex(`${ENGINE}|${date}|mark|${mark.slot}|${mark.kind}${n ? `|${n}` : ''}`)), palette, mark.slot, 1, 0.95, true);
 }
 
 export function planNight(night) {
@@ -169,7 +172,8 @@ export function planNight(night) {
   for (let i = 0; i < SLOTS; i++) {
     const w = night.slots[i] ?? 0;
     if (w > 0) drops.push(...slotDrops(night.date, i, w, palette));
-    for (const m of night.marks.filter((x) => x.slot === i)) drops.push(markDrop(night.date, m, palette));
+    const seen = new Map();
+    for (const m of night.marks.filter((x) => x.slot === i)) { const n = seen.get(m.kind) ?? 0; seen.set(m.kind, n + 1); drops.push(markDrop(night.date, m, palette, n)); }
   }
   const stats = { turns, peak, runs: runs.length, activeSlots: active.length, marks: night.marks.length,
     distanceMm: night.distanceMm, firstSlot: active[0]?.i ?? null, lastSlot: active.at(-1)?.i ?? null };
@@ -223,6 +227,7 @@ export function dropAt(r, { color, gold = false, x0, y0, vol, omega }) {
 
 // ---------- Drawing ----------
 const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+export const mixHex = (h, to, k) => { const a = hexRgb(h), b = hexRgb(to); return `#${a.map((v, i) => Math.round(v + (b[i] - v) * k).toString(16).padStart(2, '0')).join('')}`; };
 export const mix = (h, to, k) => { const a = hexRgb(h), b = hexRgb(to); return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * k)).join(',')})`; };
 export const isDark = (h) => { const [r, g, b] = hexRgb(h); return r * 0.299 + g * 0.587 + b * 0.114 < 90; };
 
@@ -392,5 +397,111 @@ export function drawFinish(ctx, R, palette, makeCanvas) {
   const sheen = ctx.createLinearGradient(-R, -R, R, R);
   sheen.addColorStop(0, 'rgba(255,255,255,.07)'); sheen.addColorStop(0.45, 'rgba(255,255,255,0)'); sheen.addColorStop(1, 'rgba(0,0,0,.05)');
   ctx.fillStyle = sheen; ctx.fillRect(-R, -R, R * 2, R * 2);
+  ctx.restore();
+}
+
+// ---------- Squeek portraits: a Squeek NFT in the middle of a card, painted by one night of the wheel ----------
+// The paint uses the Squeek's own colours (read from its on-chain SVG) and lands around it; each half hour of the night
+// is seeded by `squeek-spin-art/v1|squeek|<tokenId>|<date>|<slot>|<turns>`, so every Squeek gets its own painting of
+// every night, and higher levels throw a little more paint.
+export const WINDOW = 0.34;                                       // radius of the round window the Squeek looks out of
+
+const hexHsl = (h) => {
+  const [r, g, b] = hexRgb(h).map((v) => v / 255), mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const hue = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(hue * 60 + 360) % 360, s, l];
+};
+
+// Up to six well-separated, saturated colours from the Squeek's art, ordered by hue.
+export function squeekColors(svg) {
+  const counts = new Map();
+  for (const m of svg.matchAll(/(?:color|fill|stroke)="(#[0-9a-fA-F]{6})"/g)) { const c = m[1].toLowerCase(); counts.set(c, (counts.get(c) ?? 0) + 1); }
+  const cands = [...counts].map(([c, n]) => ({ c, n, hsl: hexHsl(c) })).filter(({ hsl: [, s, l] }) => s > 0.3 && l > 0.22 && l < 0.88)
+    .sort((a, b) => b.n - a.n || a.c.localeCompare(b.c));
+  for (const gap of [28, 16, 8]) {
+    const pick = [];
+    for (const x of cands) {
+      if (pick.length === 6) break;
+      if (pick.every((p) => Math.min(Math.abs(p.hsl[0] - x.hsl[0]), 360 - Math.abs(p.hsl[0] - x.hsl[0])) >= gap)) pick.push(x);
+    }
+    if (pick.length >= 4 || gap === 8) {
+      const cols = pick.sort((a, b) => a.hsl[0] - b.hsl[0]).map((p) => p.c);
+      for (let i = 0; cols.length && cols.length < 4; i++) cols.push(mixHex(cols[i], '#ffffff', 0.35));
+      return cols.length ? cols : PALETTES[3].colors;
+    }
+  }
+  return PALETTES[3].colors;
+}
+
+export function squeekPalette(tokenId, svg) {
+  return { name: `Squeek #${tokenId}`, card: '#0a0a0d', ink: '#6b6f80', hub: '#e9e9ef', glow: 0.6, colors: squeekColors(svg) };
+}
+
+export function portraitSeedText(sq, night) {
+  return `${ENGINE}|squeek|${sq.tokenId}|level ${sq.level}|${seedTextOf(night).slice(ENGINE.length + 1)}`;
+}
+
+export function planPortrait(sq, night) {
+  const palette = sq.palette, drops = [];
+  const lv = Math.max(1, Math.min(10, Number(sq.level) || 1));
+  for (let i = 0; i < SLOTS; i++) {
+    const w = night.slots[i] ?? 0;
+    if (w > 0) {
+      const r = rng(sha256Hex(`${ENGINE}|squeek|${sq.tokenId}|${night.date}|${i}|${w}`));
+      const a = Math.min(1.15, w / 1800), n = 1 + Math.round(a * (1.7 + 0.2 * lv) + r() * 0.8);
+      for (let k = 0; k < n; k++) {
+        const nc = palette.colors.length, t = hourT(i);
+        const color = palette.colors[Math.max(0, Math.min(nc - 1, Math.round(t * (nc - 1) + (r() - 0.5) * 1.4)))];
+        const theta = slotAngle(i) + (r() - 0.5) * (TAU / 24) * 1.3, r0 = WINDOW + 0.05 + 0.3 * Math.pow(r(), 1.3);
+        drops.push({ slot: i, ...dropAt(r, { color, x0: r0 * Math.cos(theta), y0: r0 * Math.sin(theta), vol: (0.4 + 0.6 * r()) * (0.55 + 0.5 * a), omega: Math.min(1.2, a * (0.8 + 0.4 * r())) }) });
+      }
+    }
+    const seen = new Map();
+    for (const m of night.marks.filter((x) => x.slot === i)) {
+      const n = seen.get(m.kind) ?? 0; seen.set(m.kind, n + 1);
+      const r = rng(sha256Hex(`${ENGINE}|squeek|${sq.tokenId}|${night.date}|mark|${m.slot}|${m.kind}${n ? `|${n}` : ''}`)), theta = slotAngle(i) + n * 0.12, r0 = WINDOW + 0.08;
+      drops.push({ slot: i, ...dropAt(r, { color: GOLD, gold: true, x0: r0 * Math.cos(theta), y0: r0 * Math.sin(theta), vol: 0.9, omega: 0.95 }) });
+    }
+  }
+  const seedText = portraitSeedText(sq, night), seed = sha256Hex(seedText);
+  const turns = night.slots.reduce((s, w) => s + (w ?? 0), 0);
+  return { engine: ENGINE, date: night.date, seedText, seed, palette, drops, turns, tokenId: sq.tokenId, level: lv, staked: !!sq.staked };
+}
+
+export function portraitLabel(plan) {
+  const d = new Date(`${plan.date}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  return `Squeek #${plan.tokenId} · level ${plan.level}${plan.staked ? ' · staked' : ''} · night of ${d} · ${plan.turns.toLocaleString('en')} turns · ${plan.seed.slice(0, 8)}`;
+}
+
+// The round window with the Squeek's art, upright, with a ring in its own colour (gold while it is staked and mining).
+export function drawWindow(ctx, R, img, palette, staked) {
+  const r = R * WINDOW;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = R * 0.04;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fillStyle = '#08080a'; ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.save(); ctx.clip();
+  if (img) { const s = r * 2.25; ctx.drawImage(img, -s / 2, -s / 2 - r * 0.02, s, s); }
+  ctx.restore();
+  ctx.lineWidth = Math.max(1.5, R * 0.014);
+  ctx.strokeStyle = staked ? GOLD : palette.colors[Math.floor(palette.colors.length / 2)];
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.stroke();
+  if (staked) { ctx.lineWidth = Math.max(0.8, R * 0.004); ctx.strokeStyle = '#fff3c4'; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(0, 0, r - R * 0.012, 0, TAU); ctx.stroke(); }
+  ctx.restore();
+}
+
+export function paintPortrait(ctx, plan, img, { cx, cy, R, progress = 1, label = true, makeCanvas }) {
+  ctx.save(); ctx.translate(cx, cy);
+  drawCard(ctx, R, plan.palette);
+  ctx.save(); ctx.beginPath(); ctx.arc(0, 0, R * PAINT_EDGE, 0, TAU); ctx.clip();
+  const total = plan.drops.length, upto = progress * total;
+  for (let i = 0; i < total && i < upto; i++) drawDrop(ctx, plan.drops[i], R, plan.palette, Math.min(1, upto - i));
+  ctx.restore();
+  drawFinish(ctx, R, plan.palette, makeCanvas);
+  drawFrame(ctx, R, plan.palette);
+  if (label) drawLabel(ctx, R, plan.palette, typeof label === 'string' ? label : portraitLabel(plan));
+  drawWindow(ctx, R, img, plan.palette, plan.staked);
   ctx.restore();
 }

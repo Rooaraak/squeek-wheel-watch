@@ -38,7 +38,7 @@
     :root:where(:not([data-theme="dark"])) {
       color-scheme: light;
       --page: #f6f5f2; --surface: #ffffff; --surface-2: #f3f2ee; --line: #e4e2dc;
-      --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #74736c;
+      --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #6b6a63;
       --accent: #eb6834; --accent-soft: rgba(235, 104, 52, .14); --accent-glow: rgba(235, 104, 52, .35); --link: #b4441a;
       --shadow: 0 1px 2px rgba(20, 20, 10, .05), 0 10px 30px rgba(20, 20, 10, .06);
       --disc-shadow: 0 26px 50px rgba(40, 30, 10, .22), 0 6px 14px rgba(40, 30, 10, .12);
@@ -47,7 +47,7 @@
   :root[data-theme="light"] {
     color-scheme: light;
     --page: #f6f5f2; --surface: #ffffff; --surface-2: #f3f2ee; --line: #e4e2dc;
-    --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #74736c;
+    --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #6b6a63;
     --accent: #eb6834; --accent-soft: rgba(235, 104, 52, .14); --accent-glow: rgba(235, 104, 52, .35); --link: #b4441a;
     --shadow: 0 1px 2px rgba(20, 20, 10, .05), 0 10px 30px rgba(20, 20, 10, .06);
     --disc-shadow: 0 26px 50px rgba(40, 30, 10, .22), 0 6px 14px rgba(40, 30, 10, .12);
@@ -69,7 +69,7 @@
   .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
 
   /* nav */
-  .nav { display: flex; align-items: center; gap: 16px; padding: 18px 0; }
+  .nav { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 18px 0; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); font-size: 16px; white-space: nowrap; }
   .brand:hover { text-decoration: none; }
   .brand svg { width: 28px; height: 28px; flex: none; }
@@ -95,7 +95,7 @@
   .btn:hover { border-color: var(--ink-3); text-decoration: none; }
   .btn:disabled { opacity: .5; cursor: default; }
   .btn svg { width: 16px; height: 16px; flex: none; }
-  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary { background: #c24d1d; border-color: #c24d1d; color: #fff; }
   .btn.primary:hover { filter: brightness(1.08); }
   .hint { color: var(--ink-3); font-size: 13px; margin: 8px 0 0; }
   .seg { display: inline-flex; flex-wrap: wrap; padding: 3px; border-radius: 11px; background: var(--surface); border: 1px solid var(--line); }
@@ -105,8 +105,10 @@
   .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--ink); box-shadow: 0 0 0 1px var(--line) inset; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-  /* discs */
+  /* discs: static ones are plain canvases; spinning ones sit in a still, round wrapper that carries the shadow */
   .disc { display: block; width: 100%; height: auto; aspect-ratio: 1; border-radius: 50%; box-shadow: var(--disc-shadow); touch-action: manipulation; }
+  .disc-wrap { position: relative; width: 100%; aspect-ratio: 1; border-radius: 50%; box-shadow: var(--disc-shadow); }
+  .disc-wrap > canvas { display: block; width: 100%; height: 100%; border-radius: 50%; will-change: transform; }
 
   /* hero */
   .hero { display: grid; grid-template-columns: 1fr minmax(0, 470px); gap: 36px; align-items: center; padding: 36px 40px; margin-top: 6px; overflow: hidden; }
@@ -121,7 +123,7 @@
   .hero-meta b { color: var(--ink-2); font-weight: 600; font-variant-numeric: tabular-nums; }
   .hero-actions { margin-top: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
   .hero-art { margin: 0; display: grid; justify-items: center; gap: 14px; }
-  .hero-art .disc { max-width: 470px; }
+  .hero-art .disc-wrap { max-width: 470px; }
   .hero-art figcaption { color: var(--ink-3); font-size: 13.5px; text-align: center; max-width: 42ch; min-height: 2.6em; }
   .hero-art figcaption b { color: var(--ink); font-weight: 600; }
 
@@ -140,12 +142,14 @@
   .night .meta { color: var(--ink-3); font-size: 13px; margin-top: 2px; font-variant-numeric: tabular-nums; }
   .night .tag { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px;
     background: rgba(217, 173, 60, .18); color: #d9ad3c; vertical-align: 2px; }
+  :root[data-theme="light"] .night .tag { color: #8a6514; }
+  @media (prefers-color-scheme: light) { :root:where(:not([data-theme="dark"])) .night .tag { color: #8a6514; } }
   .gallery .empty { grid-column: 1 / -1; padding: 28px; color: var(--ink-3); text-align: center; }
 
   /* paint with him */
   .toy { display: grid; grid-template-columns: minmax(0, 520px) 1fr; gap: 32px; padding: 28px; align-items: start; }
   .toy-stage { position: relative; }
-  .toy-stage .disc { cursor: crosshair; user-select: none; -webkit-user-select: none; touch-action: none; }
+  .toy-stage canvas { cursor: crosshair; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
   .toy-hint { position: absolute; left: 50%; bottom: -6px; transform: translate(-50%, 100%); width: 100%; text-align: center; color: var(--ink-3); font-size: 13px; }
   .toy-side { display: grid; gap: 20px; align-content: start; }
   .field .label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 8px; }
@@ -159,6 +163,20 @@
   .toy-actions { display: flex; flex-wrap: wrap; gap: 10px; }
   .toy-state { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
   .toy-state .speed { color: var(--ink-2); font-size: 14px; font-variant-numeric: tabular-nums; }
+
+  /* squeek portraits */
+  .portraits { display: grid; grid-template-columns: minmax(0, 460px) 1fr; gap: 32px; padding: 28px; align-items: start; }
+  .pt-stage { display: grid; gap: 14px; justify-items: center; }
+  .pt-nights { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .pt-nights .icon-btn:disabled { opacity: .4; cursor: default; }
+  .pt-side { display: grid; gap: 16px; align-content: start; }
+  .pt-side form { display: flex; gap: 8px; }
+  .pt-side input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 10px; padding: 11px 12px; font: 500 14px Inter, system-ui, sans-serif; }
+  .pt-side .facts { margin: 0; }
+  .link-btn { border: 0; background: none; color: var(--link); font: inherit; cursor: pointer; padding: 0; text-decoration: underline; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 999px; padding: 6px 11px; font: 600 12.5px Inter, system-ui, sans-serif; cursor: pointer; }
+  .chip:hover { border-color: var(--ink-3); }
 
   /* stream */
   .stream { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; align-items: center; padding: 26px; }
@@ -186,13 +204,13 @@
   dialog::backdrop { background: rgba(5, 5, 8, .72); backdrop-filter: blur(4px); }
   .dlg { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 28px; padding: 28px; }
   .dlg-art { display: grid; gap: 14px; align-content: start; justify-items: center; }
-  .dlg-art .disc { max-width: 520px; }
   .dlg-head { display: flex; align-items: start; gap: 12px; }
   .dlg-head h2 { margin: 0; padding-right: 44px; font-size: 26px; letter-spacing: -.02em; line-height: 1.15; flex: 1; }
-  #dlgClose { position: absolute; top: 14px; right: 14px; z-index: 2; background: var(--surface); }
-  dialog { position: fixed; }
+  #dlgClose { position: absolute; top: 14px; right: 14px; background: var(--surface); }
+  .dlg-art .disc-wrap { max-width: 520px; }
   .dlg-sub { color: var(--ink-3); margin: 4px 0 0; font-size: 14px; }
   .facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 18px 0; }
+  .dlg-bar { position: sticky; top: 0; height: 0; z-index: 3; }
   .fact { padding: 12px 14px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
   .fact .k { font-size: 12px; color: var(--ink-3); }
   .fact .v { font-size: 18px; font-weight: 600; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
@@ -212,17 +230,30 @@
   html.overlay-mode, html.overlay-mode body { background: transparent; background-image: none; }
   html.overlay-mode .wrap { display: none; }
   html.overlay-mode #overlayRoot { display: grid; justify-items: center; gap: 2vmin; padding: 3vmin; }
-  #overlayRoot .disc { width: min(92vmin, 100%); box-shadow: 0 2vmin 5vmin rgba(0, 0, 0, .45); }
   .ov-cap { display: inline-flex; align-items: center; gap: 1.6vmin; padding: 1.4vmin 3vmin; border-radius: 999px; background: rgba(13, 13, 17, .82); color: #f0efec;
     font: 600 3.4vmin/1.2 Inter, system-ui, sans-serif; border: 1px solid rgba(255, 255, 255, .1); white-space: nowrap; max-width: 96vw; overflow: hidden; text-overflow: ellipsis; }
   .ov-cap .dot { width: 2vmin; height: 2vmin; }
+  #overlayRoot .disc-wrap { width: min(92vmin, 100%); box-shadow: 0 2vmin 5vmin rgba(0, 0, 0, .45); }
+  .ov-corner { display: none; }
+  html.corner #overlayRoot { grid-template-columns: auto 1fr; justify-items: start; align-items: center; gap: 4vh; padding: 4vh; }
+  html.corner #overlayRoot .disc-wrap { width: 92vh; box-shadow: 0 1.5vh 4vh rgba(0, 0, 0, .45); }
+  html.corner .ov-cap { display: none; }
+  html.corner .ov-corner { display: grid; gap: 1vh; padding: 3vh 5vh; border-radius: 4vh; background: rgba(13, 13, 17, .82); color: #f0efec; border: 1px solid rgba(255, 255, 255, .1); max-width: 100%; }
+  :root[data-theme="light"] .ov-corner { background: rgba(255, 255, 255, .9); color: #0b0b0b; border-color: rgba(0, 0, 0, .08); }
+  .ov-eyebrow { font: 600 7vh/1.1 Inter, system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
+  .ov-big { font: 700 17vh/1.05 Inter, system-ui, sans-serif; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ov-sub { display: flex; align-items: center; gap: 2vh; font: 600 7.5vh/1.2 Inter, system-ui, sans-serif; opacity: .85; }
+  .ov-sub .dot { width: 4vh; height: 4vh; }
+  .flash { animation: flash 1.4s ease-out; }
+  @keyframes flash { 0% { box-shadow: 0 0 0 0 rgba(242, 155, 108, .9); } 100% { box-shadow: 0 0 0 4vmin rgba(242, 155, 108, 0); } }
   :root[data-theme="light"] .ov-cap { background: rgba(255, 255, 255, .9); color: #0b0b0b; border-color: rgba(0, 0, 0, .08); }
 
   @media (max-width: 920px) {
-    .hero, .toy, .stream, .dlg { grid-template-columns: 1fr; }
+    .hero, .toy, .stream, .dlg, .portraits { grid-template-columns: 1fr; }
     .hero { padding: 26px 22px; }
     .hero-art { order: -1; }
-    .hero-art .disc { max-width: 360px; }
+    .hero-art .disc-wrap { max-width: 360px; }
+    .portraits { padding: 20px; }
     .steps { grid-template-columns: repeat(2, 1fr); }
     .toy { padding: 20px; }
     .toy-stage { margin-bottom: 28px; }
@@ -241,6 +272,7 @@
     html { scroll-behavior: auto; }
     .is-running .dot { animation: none; }
     .night, .swatch, .cardpick { transition: none; }
+    .flash { animation: none; }
   }
 </style>
 </head>
@@ -251,10 +283,11 @@
       <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#f3ead9"/><path d="M32 14c8 2 16 9 18 18-6-5-11-7-18-6z" fill="#d95926"/><path d="M18 40c-3-7-2-15 3-20 0 7 3 12 9 15z" fill="#f6c445"/><path d="M44 46c-7 4-16 4-22-1 7-1 12-4 15-9z" fill="#b3261e"/><circle cx="32" cy="32" r="5" fill="#2a211a"/></svg>
       Squeek Spin Art
     </a>
-    <span class="pill" id="pill"><span class="dot"></span><span id="pillText">Connecting…</span></span>
+    <span class="pill" id="pill" role="status"><span class="dot"></span><span id="pillText">Connecting…</span></span>
     <span class="spacer"></span>
     <nav class="nav-links">
       <a class="hide-sm" href="#gallery">Gallery</a>
+      <a class="hide-sm" href="#squeeks">Squeeks</a>
       <a class="hide-sm" href="#paint">Paint</a>
       <a class="hide-sm" href="#stream">Stream</a>
       <a href="watch/">Live stats</a>
@@ -270,7 +303,7 @@
         <p class="eyebrow">Painted by a real hamster</p>
         <h1 id="headline">Squeektoshi paints every night</h1>
         <p class="lede">Squeekchain is mined by a real hamster on a real wheel. Here that wheel is also a spin-art machine: every half hour he runs drops paint on tonight's card, at that hour on its clock face, and the faster he runs the further the paint flies. By morning the card is a painting of his night.</p>
-        <div class="live" aria-live="polite">
+        <div class="live">
           <div class="hero-figure"><span class="num" id="rpm">–</span><span class="unit">rpm</span></div>
           <div class="hero-meta">
             <span><b id="tonightTurns">–</b> turns tonight</span>
@@ -291,7 +324,7 @@
         </div>
       </div>
       <figure class="hero-art">
-        <canvas class="disc" id="heroCanvas" role="img" aria-label="Tonight's card"></canvas>
+        <div class="disc-wrap"><canvas id="heroCanvas" role="img" aria-label="Tonight's card"></canvas></div>
         <figcaption id="heroCaption">Loading the paint…</figcaption>
       </figure>
     </section>
@@ -299,14 +332,45 @@
     <div class="section-head" id="gallery">
       <div><h2>Every night he has painted</h2><p>One card per Squeek day, 12:00 to 12:00 UTC. Open one to replay it, take it as a wallpaper or check how it was made.</p></div>
     </div>
-    <section class="gallery" id="galleryGrid" aria-live="polite"><div class="empty">Collecting the paintings…</div></section>
+    <section class="gallery" id="galleryGrid"><div class="empty">Collecting the paintings…</div></section>
+
+    <div class="section-head" id="squeeks">
+      <div><h2>Your Squeek, painted every night</h2><p>Every Squeek NFT gets its own painting of every night he runs: its own colours, its own on-chain art in the middle, and a gold ring while it's staked and mining.</p></div>
+    </div>
+    <section class="card portraits">
+      <div class="pt-stage">
+        <div class="disc-wrap"><canvas id="ptCanvas" role="img" aria-label="Squeek portrait"></canvas></div>
+        <div class="pt-nights">
+          <button class="icon-btn" id="ptPrev" type="button" aria-label="Earlier night"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <span id="ptNight" aria-live="polite">–</span>
+          <button class="icon-btn" id="ptNext" type="button" aria-label="Later night"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+      <div class="pt-side">
+        <form id="ptForm">
+          <input id="ptInput" placeholder="Squeek number or wallet (0x…)" aria-label="Squeek number or wallet address" autocomplete="off" spellcheck="false" inputmode="text">
+          <button class="btn primary" type="submit">Show</button>
+        </form>
+        <p class="hint"><span id="ptHint" aria-live="polite">Loading a Squeek…</span> <button class="link-btn" id="ptRandom" type="button">Show a random one</button></p>
+        <div class="chips" id="ptList"></div>
+        <div class="facts" id="ptFacts"></div>
+        <div class="dl">
+          <button class="btn primary" type="button" data-ptwall="pfp">Profile picture</button>
+          <button class="btn" type="button" data-ptwall="phone">Phone wallpaper</button>
+          <button class="btn" type="button" id="ptVideo">Video</button>
+          <a class="btn" id="ptShare" target="_blank" rel="noopener">Share on X</a>
+          <button class="btn" type="button" id="ptLink">Copy link</button>
+        </div>
+        <p class="hint">Squeeks live on Squeekchain's Sepolia test network for now; when the Genesis Squeeks launch, theirs will show up here the same way.</p>
+      </div>
+    </section>
 
     <div class="section-head" id="paint">
       <div><h2>Paint with Squeektoshi</h2><p>Your own card, on his wheel. Tap to drop paint, hold to pour more. It only spins when he runs, so your paint waits for him.</p></div>
     </div>
     <section class="card toy">
       <div class="toy-stage">
-        <canvas class="disc" id="toyCanvas" role="img" aria-label="Your card. Tap or click to drop paint."></canvas>
+        <div class="disc-wrap"><canvas id="toyCanvas" role="button" tabindex="0" aria-label="Your card. Click or tap to drop paint, hold to pour more, or press Enter."></canvas></div>
         <div class="toy-hint" id="toyHint">Tap the card to drop paint</div>
       </div>
       <div class="toy-side">
@@ -347,6 +411,11 @@
           <button class="btn" id="copyOverlay" type="button">Copy</button>
         </div>
         <p class="hint">Add <code>&amp;caption=0</code> to hide the caption, or <code>&amp;theme=light</code> for a light caption. The live speed box is still at <a href="watch/?overlay">/watch/?overlay</a>.</p>
+        <p class="hint" style="margin-top:16px"><b>Corner widget</b> for a stream layout: a small spinning card with tonight's turn count. Size 640 × 220.</p>
+        <div class="copy-row">
+          <input id="cornerUrl" readonly value="https://www.squeekwheel.xyz/?overlay=art&amp;layout=corner" aria-label="Corner widget link">
+          <button class="btn" id="copyCorner" type="button">Copy</button>
+        </div>
       </div>
       <div class="overlay-preview"><iframe id="overlayFrame" title="Overlay preview" loading="lazy"></iframe></div>
     </section>
@@ -367,14 +436,20 @@
 </div>
 
 <dialog id="nightDialog" aria-labelledby="dlgTitle">
+  <div class="dlg-bar">
+    <button class="icon-btn" id="dlgClose" type="button" aria-label="Close" autofocus>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
   <div class="dlg">
     <div class="dlg-art">
-      <canvas class="disc" id="dlgCanvas" role="img"></canvas>
+      <div class="disc-wrap"><canvas id="dlgCanvas" role="img"></canvas></div>
       <div class="dl">
         <button class="btn" id="dlgReplay" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
           Replay the night
         </button>
+        <button class="btn" id="dlgVideo" type="button">Save video</button>
       </div>
     </div>
     <div>
@@ -383,9 +458,6 @@
           <h2 id="dlgTitle">–</h2>
           <p class="dlg-sub" id="dlgSub"></p>
         </div>
-        <button class="icon-btn" id="dlgClose" type="button" aria-label="Close" autofocus>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-        </button>
       </div>
       <div class="facts" id="dlgFacts"></div>
       <div class="clock-strip">
@@ -406,15 +478,21 @@
         <div class="mono-box" id="dlgSeedText"></div>
         <p>SHA-256 fingerprint of that text (it picks the title; each half hour's paint comes from its own hash):</p>
         <div class="mono-box" id="dlgSeed"></div>
-        <p>The numbers come from <a id="dlgData" target="_blank" rel="noopener">api.squeekchain.com/v1/measurement/stats</a> (day <code id="dlgDay"></code>). To re-create it, run <code id="dlgCmd"></code> from the <a href="https://github.com/Rooaraak/squeek-wheel-watch" rel="noopener">source</a>, or open this page again: same numbers, same painting.</p>
+        <p>The numbers come from <a id="dlgSourceLink" target="_blank" rel="noopener"><span id="dlgSource">api.squeekchain.com</span></a> (night <code id="dlgDay"></code>). To re-create it, run <code id="dlgCmd"></code> from the <a href="https://github.com/Rooaraak/squeek-wheel-watch" rel="noopener">source</a>, or open this page again: same numbers, same painting.</p>
+        <p id="dlgProvisional" hidden>Records are still loading from the API, so gold paint and the fingerprint may still change for this night.</p>
       </details>
     </div>
   </div>
 </dialog>
 
-<div id="overlayRoot" aria-live="polite">
-  <canvas class="disc" id="ovCanvas" role="img" aria-label="Tonight's card"></canvas>
+<div id="overlayRoot">
+  <div class="disc-wrap"><canvas id="ovCanvas" role="img" aria-label="Tonight's card"></canvas></div>
   <div class="ov-cap" id="ovCap"><span class="dot"></span><span id="ovText">Squeek Spin Art</span></div>
+  <div class="ov-corner" id="ovCorner">
+    <div class="ov-eyebrow" id="ovEyebrow">Squeektoshi's painting tonight</div>
+    <div class="ov-big" id="ovBig">–</div>
+    <div class="ov-sub"><span class="dot"></span><span id="ovSub">squeekwheel.xyz</span></div>
+  </div>
 </div>
 
 <script type="module" src="studio.js"></script>

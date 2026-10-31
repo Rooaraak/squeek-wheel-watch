@@ -1166,7 +1166,7 @@ async function checkWallet(addr) {
     tile('Claimable now', sqk2(acct.rewards.claimableBaseUnits), 'SQK'),
     tile('Rewards received', sqk2(lifetime), 'SQK, all time'));
   const shareWallet = node('button', { className: 'link-btn', type: 'button', textContent: 'Share on X',
-    onclick: () => openShare(`This wallet holds ${nf.format(staked + inWallet)} Squeeks and has received ${sqk2(lifetime)} SQK in rewards on @squeekchain 🐹 Check any wallet:`, `https://www.squeekwheel.xyz/#wallet=${addr}`) });
+    onclick: () => openShare(`This wallet holds ${nf.format(staked + inWallet)} Squeeks and has received ${sqk2(lifetime)} SQK in rewards on @squeekchain 🐹 Check any wallet:`, `https://www.squeekwheel.xyz/watch/#wallet=${addr}`) });
   const head = node('div', { className: 'chart-top', style: 'margin-top:18px' },
     node('span', { className: 'chart-title', textContent: 'SQK earned per day' }),
     node('span', { style: 'display:flex;gap:16px;align-items:baseline' }, shareWallet,
