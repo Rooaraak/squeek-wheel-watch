@@ -124,7 +124,8 @@ function notifyStart() {
   try { new Notification('Squeektoshi is painting 🐹🎨', { body: 'He just got on the wheel. Tonight\'s card is spinning.', tag: 'sart-start' }); } catch {}
 }
 const isStale = (st) => { const m = st?.measurement; return !!m && !(Date.now() - Date.parse(m.observedAt) <= Number(m.staleAfterSeconds) * 1000); };
-const isRunning = (st) => { const m = st?.measurement; return !!m && !isStale(st) && m.coreStatus !== 'IDLE' && Number(m.speedMmPerSecond) > 0; };
+// Speed decides: the API's coreStatus flips between ACTIVE and IDLE every few seconds while he runs (seen 10-31).
+const isRunning = (st) => { const m = st?.measurement; return !!m && !isStale(st) && Number(m.speedMmPerSecond) > 0; };
 const liveRpm = () => (isRunning(data.status) ? Number(data.status.measurement.rpmMilli) / 1000 || 0 : 0);
 
 // ---------- a card on screen: layers, spin, wet paint ----------

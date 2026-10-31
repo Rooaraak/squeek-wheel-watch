@@ -885,7 +885,7 @@ let wasRunning = null;
 function renderStatus(status) {
   const m = status.measurement;
   const stale = (Date.now() - Date.parse(m.observedAt)) / 1000 > Number(m.staleAfterSeconds);
-  const running = !stale && m.coreStatus !== 'IDLE' && m.speedMmPerSecond > 0;
+  const running = !stale && m.speedMmPerSecond > 0;   // coreStatus flips ACTIVE/IDLE while he runs, so speed decides
   for (const el of [$('hero'), $('pill'), $('ov')]) {
     el.classList.toggle('is-running', running);
     el.classList.toggle('is-stale', stale);
