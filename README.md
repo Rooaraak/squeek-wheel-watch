@@ -64,3 +64,5 @@ This is a community project and is not affiliated with the Squeekchain team.
 ## License
 
 MIT
+
+squeekchain-project: 9f3a6e46-83bf-46ed-abe1-a7ae22e1095f
