@@ -684,7 +684,78 @@
    ],
    "installationId": "sepolia-core-sepolia-20261103",
    "archivedAt": "2026-11-06T12:50:04.240Z"
+  },
+  "2026-11-06": {
+   "slots": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1147,
+    869,
+    1067,
+    1105,
+    935,
+    616,
+    613,
+    1085,
+    68,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "distanceMm": 6589390,
+   "marks": [
+    {
+     "date": "2026-11-06",
+     "slot": 34,
+     "kind": "speed_record",
+     "label": "a new top speed at the time (5.18 km/h)",
+     "at": "2026-11-07T05:09:45.041Z"
+    },
+    {
+     "date": "2026-11-06",
+     "slot": 33,
+     "kind": "speed_record",
+     "label": "a new top speed at the time (4.89 km/h)",
+     "at": "2026-11-07T04:31:54.920Z"
+    }
+   ],
+   "installationId": "sepolia-core-sepolia-20261103",
+   "archivedAt": "2026-11-07T12:50:05.377Z"
   }
  },
- "updatedAt": "2026-11-06T12:50:04.414Z"
+ "updatedAt": "2026-11-07T12:50:05.465Z"
 }
